@@ -1,4 +1,5 @@
 #include "sdlpp.hpp"
+#include "sdlpp_main.hpp"
 
 int main(void)
 {

@@ -1,7 +1,7 @@
 #ifndef SDLPP_HPP
 #define SDLPP_HPP
 
-#include "csdldecl.hpp"
+#include "sdlpp_csdl.hpp"
 #include "../util/list.hpp"
 #include <stdexcept>
 #include <string>
