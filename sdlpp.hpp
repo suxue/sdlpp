@@ -16,6 +16,10 @@ namespace sdlpp {
 
     namespace error {
         std::string getmsg();
+        struct RuntimeError : public std::runtime_error {
+            using std::runtime_error::runtime_error;
+            RuntimeError() : RuntimeError{getmsg()} {}
+        };
     }
 
     namespace def {
@@ -57,12 +61,52 @@ namespace sdlpp {
         }
     };
 
-    struct WindowShape {
+    class Handler;
+    class WindowMode {
+        friend Handler;
+        std::uint32_t value;
+        WindowMode(std::uint32_t v) : value{v} {}
+    public:
+        WindowMode() : value{0} {}
+        WindowMode fullscreen() {
+            return WindowMode{value | SDL_WINDOW_FULLSCREEN};
+        }
+        WindowMode fulldesktop() {
+            return WindowMode{value | SDL_WINDOW_FULLSCREEN_DESKTOP};
+        }
+        WindowMode opengl() {
+            return WindowMode{value | SDL_WINDOW_OPENGL};
+        }
+        WindowMode hide() {
+            return WindowMode{value | SDL_WINDOW_HIDDEN};
+        }
+        WindowMode resizable() {
+            return WindowMode{value | SDL_WINDOW_RESIZABLE};
+        }
+        WindowMode grab() {
+            return WindowMode{value | SDL_WINDOW_INPUT_GRABBED};
+        }
+        WindowMode minimize() {
+            return WindowMode{value | SDL_WINDOW_MINIMIZED};
+        }
+        WindowMode maximize() {
+            return WindowMode{value | SDL_WINDOW_MAXIMIZED};
+        }
+        WindowMode borderless() {
+            return WindowMode{value | SDL_WINDOW_BORDERLESS};
+        }
+    };
+
+    struct Rectangular {
+        Rectangular(int wi, int hi,
+                    const WindowPosition& pos = WindowPosition{})
+            : x{pos.x}, y{pos.y}, w{wi}, h{hi} {}
+        int x;
+        int y;
         int w;
         int h;
     };
 
-    class Handler;
 
     template<typename T>
     class PointerHolder {
@@ -79,46 +123,49 @@ namespace sdlpp {
         T* ptr;
     };
 
-
     class Window;
-    class Surface : public PointerHolder<SDL_Surface> {
+    class Surface_Base : public PointerHolder<SDL_Surface> {
         friend Window;
+    protected:
+        Surface_Base(Surface_Base&& s): PointerHolder{(PointerHolder&&)s} {}
+        Surface_Base(SDL_Surface *p): PointerHolder{p} {}
     public:
-        typedef std::function<void(SDL_Surface*)> Cleaner;
-        struct LoadFailure : public std::runtime_error {
-            using std::runtime_error::runtime_error;
+        struct LoadFailure : public error::RuntimeError {
+            using error::RuntimeError::RuntimeError;
         };
-        struct BlitFailure : public std::runtime_error {
-            using std::runtime_error::runtime_error;
+        struct BlitFailure : public error::RuntimeError {
+            using error::RuntimeError::RuntimeError;
         };
-    private:
-        struct DummyCleanner {
-            void operator()(SDL_Surface*) {}
-        };
-        Cleaner cleanner;
-        Surface(SDL_Surface *p, Cleaner sc = DummyCleanner{})
-            : PointerHolder{p}, cleanner{sc} {}
-    public:
-        Surface(Surface&& s)
-            : PointerHolder{(PointerHolder&&)s}, cleanner{s.cleanner} {}
-        ~Surface() {
-            cleanner(ptr);
-        }
-        static Surface loadBMP(const std::string& path);
-        void blit(const Surface& src);
+        void blit(const Surface_Base& src);
+        Surface_Base&& getBase() { return std::move(*this);}
     };
+
+    class Surface : public Surface_Base {
+    public:
+        Surface(SDL_Surface *p) : Surface_Base{p} {}
+        ~Surface() { SDL_FreeSurface(ptr); }
+        Surface(Surface&& s) : Surface_Base{s.getBase()} {}
+        static Surface loadBMP(const std::string& path);
+    };
+
+    class InternalSurface : public Surface_Base {
+    public:
+        InternalSurface(SDL_Surface *p) : Surface_Base{p} {}
+        InternalSurface(Surface&& s) : Surface_Base{s.getBase()} {}
+    };
+
 
     class Window : public PointerHolder<SDL_Window> {
         friend Handler;
         Window(SDL_Window* p) : PointerHolder{p} {};
     public:
-        class CreateFailure : public std::runtime_error {
-            using std::runtime_error::runtime_error;
+        struct CreateFailure : public error::RuntimeError {
+            using error::RuntimeError::RuntimeError;
         };
         Window(Window&& w) : PointerHolder{(PointerHolder&&)w} {}
         ~Window();
         void update() { SDL_UpdateWindowSurface(ptr); };
-        Surface getSurface();
+        InternalSurface getSurface();
     };
 
     class Handler {
@@ -126,16 +173,16 @@ namespace sdlpp {
         Handler() {};
     public:
         Window createWindow(const std::string& title,
-                                 const WindowPosition& pos,
-                                 const WindowShape& shape);
+                            const Rectangular& rect,
+                            WindowMode wm = WindowMode{});
     };
 
     template<int v>
     class Initializer_Base : public Handler {
     public:
         enum { value = v };
-        struct InitError : public std::runtime_error {
-            InitError(const std::string& msg) : std::runtime_error(msg) {};
+        struct InitError : public error::RuntimeError {
+            using error::RuntimeError::RuntimeError;
         };
         Initializer_Base() {
             if (SDL_Init(value) < 0) {

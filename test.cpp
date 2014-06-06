@@ -12,6 +12,5 @@ BOOST_AUTO_TEST_CASE( sdlpp_initializer )
     typedef Initializer<def::Timer> InitType2;
     BOOST_CHECK_EQUAL(InitType2::value, SDL_INIT_TIMER );
     InitType2 sdl{};
-    Window w = sdl.createWindow("hello", WindowPosition{},
-            WindowShape{200, 100});
+    Window w = sdl.createWindow("hello", Rectangular{200, 100});
 }

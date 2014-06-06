@@ -5,12 +5,13 @@ namespace sdlpp {
 
 Window
 Handler::createWindow(const std::string& title,
-                             const WindowPosition& pos,
-                             const WindowShape& shape)
+                      const Rectangular& rect,
+                      WindowMode wm)
 {
-    SDL_Window *wp = SDL_CreateWindow(title.c_str(), pos.x, pos.y, shape.w, shape.h,0);
+    SDL_Window *wp = SDL_CreateWindow(title.c_str(),
+                         rect.x, rect.y, rect.w, rect.h, wm.value);
     if (!wp) {
-        throw Window::CreateFailure{error::getmsg()};
+        throw Window::CreateFailure{};
     }
     return Window{wp};
 }
@@ -28,33 +29,27 @@ std::string error::getmsg()
     return smsg;
 }
 
-Surface
+InternalSurface
 Window::getSurface()
 {
-    return Surface{SDL_GetWindowSurface(ptr)};
+    return InternalSurface{SDL_GetWindowSurface(ptr)};
 }
-
-struct SurfaceCleaner {
-    void operator()(SDL_Surface* s) {
-        SDL_FreeSurface(s);
-    }
-};
 
 Surface
 Surface::loadBMP(const std::string& path)
 {
     auto p = SDL_LoadBMP(path.c_str());
     if (!p) {
-        throw LoadFailure{error::getmsg()};
+        throw LoadFailure{};
     }
-    return Surface{p, SurfaceCleaner{}};
+    return Surface{p};
 }
 
 void
-Surface::blit(const Surface& src)
+Surface_Base::blit(const Surface_Base& src)
 {
     if (SDL_BlitSurface(src.ptr, NULL, ptr, NULL) != 0) {
-        throw BlitFailure{error::getmsg()};
+        throw BlitFailure{};
     }
 }
 
