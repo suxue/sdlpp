@@ -6,8 +6,17 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <cstdint>
 
 namespace sdlpp {
+
+    namespace os {
+        inline void delay(std::uint32_t ms) { SDL_Delay(ms); }
+    }
+
+    namespace error {
+        std::string getmsg();
+    }
 
     namespace def {
         enum Subsystem {
@@ -70,12 +79,46 @@ namespace sdlpp {
         T* ptr;
     };
 
+
+    class Window;
+    class Surface : public PointerHolder<SDL_Surface> {
+        friend Window;
+    public:
+        typedef std::function<void(SDL_Surface*)> Cleaner;
+        struct LoadFailure : public std::runtime_error {
+            using std::runtime_error::runtime_error;
+        };
+        struct BlitFailure : public std::runtime_error {
+            using std::runtime_error::runtime_error;
+        };
+    private:
+        struct DummyCleanner {
+            void operator()(SDL_Surface*) {}
+        };
+        Cleaner cleanner;
+        Surface(SDL_Surface *p, Cleaner sc = DummyCleanner{})
+            : PointerHolder{p}, cleanner{sc} {}
+    public:
+        Surface(Surface&& s)
+            : PointerHolder{(PointerHolder&&)s}, cleanner{s.cleanner} {}
+        ~Surface() {
+            cleanner(ptr);
+        }
+        static Surface loadBMP(const std::string& path);
+        void blit(const Surface& src);
+    };
+
     class Window : public PointerHolder<SDL_Window> {
         friend Handler;
         Window(SDL_Window* p) : PointerHolder{p} {};
     public:
+        class CreateFailure : public std::runtime_error {
+            using std::runtime_error::runtime_error;
+        };
         Window(Window&& w) : PointerHolder{(PointerHolder&&)w} {}
         ~Window();
+        void update() { SDL_UpdateWindowSurface(ptr); };
+        Surface getSurface();
     };
 
     class Handler {
@@ -96,9 +139,7 @@ namespace sdlpp {
         };
         Initializer_Base() {
             if (SDL_Init(value) < 0) {
-                std::string msg = std::string(SDL_GetError());
-                SDL_ClearError();
-                throw InitError(msg);
+                throw InitError{error::getmsg()};
             }
         }
         ~Initializer_Base() { SDL_Quit(); }
@@ -124,6 +165,7 @@ namespace sdlpp {
     class Initializer<> : public Initializer_Base<0> {
         public: Initializer()  {};
     };
+
 }
 
 #endif
