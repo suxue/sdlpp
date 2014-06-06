@@ -1,4 +1,5 @@
 #include "sdlpp.hpp"
+#include "sdlpp_main.hpp"
 #define BOOST_TEST_MODULE SdlppTest
 #include <boost/test/unit_test.hpp>
 
