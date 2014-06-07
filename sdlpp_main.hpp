@@ -1,14 +1,9 @@
 #ifndef SDLPP_MAIN
 #define SDLPP_MAIN
 
+#include "SDL_main.h"
 #if defined(__MINGW32__)
-extern "C" {
-    extern int main(int argc, char *argv[]);
-    int SDL_main(int argc, char *argv[])
-    {
-        return main(argc, argv);
-    }
-}
+#define main SDL_main
 #endif
 
 #endif
