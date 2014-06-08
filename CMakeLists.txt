@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(sdlpp)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 add_library(sdlpp sdlpp.cpp)
 link_libraries(sdlpp ${SDL2_LIBRARY})
 if(MSVC)
@@ -19,5 +21,4 @@ add_executable(sdlpp_test test.cpp)
 target_link_libraries(sdlpp_test ${Boost_TEST_EXEC_MONITOR_LIBRARY})
 target_link_libraries(sdlpp_test sdlpp)
 
-add_executable(demo demo.cpp)
-target_link_libraries(demo sdlpp)
+add_subdirectory(demos)
