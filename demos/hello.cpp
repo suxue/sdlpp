@@ -18,7 +18,8 @@ main
     auto path  = std::string(SDLPP_DEMO_DATA_DIR) + "hello.bmp";
     std::cout << path << std::endl;
     auto src = Surface::loadBMP(path);
-    dest.blit(src);
+    auto srcopt = src.convert(dest.format());
+    dest.blitScaled(srcopt);
     window.update();
     event::Event e;
     while (true) {

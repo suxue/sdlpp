@@ -61,9 +61,7 @@ namespace sdlpp {
             SDL_Event data;
         };
 
-        class WindowEvent : public Event {
-            
-        };
+        class WindowEvent : public Event { /* TODO */ };
 
         class KeyEvent : public Event {
         public:
@@ -82,12 +80,12 @@ namespace sdlpp {
 
     }
 
-    struct WindowPosition {
+    struct Position {
         int x;
         int y;
-        WindowPosition(int xi = SDL_WINDOWPOS_UNDEFINED,
+        Position(int xi = SDL_WINDOWPOS_UNDEFINED,
                        int yi = SDL_WINDOWPOS_UNDEFINED) : x(xi), y(yi) {}
-        WindowPosition& setCentered(bool setx, bool sety) {
+        Position& setCentered(bool setx, bool sety) {
             if (setx) x = SDL_WINDOWPOS_CENTERED;
             if (sety) y = SDL_WINDOWPOS_CENTERED;
             return *this;
@@ -132,14 +130,16 @@ namespace sdlpp {
 
     struct Rectangular {
         Rectangular(int wi, int hi,
-                    const WindowPosition& pos = WindowPosition())
+                    const Position& pos = Position())
             : x(pos.x), y(pos.y), w(wi), h(hi) {}
         int x;
         int y;
         int w;
         int h;
+        SDL_Rect *toSdlRect() const { return (SDL_Rect*)this; }
     };
 
+    typedef const SDL_PixelFormat* PixelFormat;
 
     template<typename T>
     class PointerHolder {
@@ -150,41 +150,46 @@ namespace sdlpp {
         PointerHolder(T* p) : ptr(p) {}
         PointerHolder(PointerHolder<T>&& o) {
             ptr = o.ptr;
+            o.ptr = nullptr;
         }
         T* ptr;
     };
 
     class Window;
-    class Surface_Base : public PointerHolder<SDL_Surface> {
+    class Surface : public PointerHolder<SDL_Surface> {
         friend Window;
-    protected:
-        Surface_Base(Surface_Base&& s): PointerHolder((PointerHolder&&)s) {}
-        Surface_Base(SDL_Surface *p): PointerHolder(p) {}
+    private:
+        bool needDeallocate;
+        // default is unmanaged surface, need to be freed
+        Surface(SDL_Surface *p, bool managed = false)
+            : PointerHolder(p), needDeallocate(!managed) {}
     public:
+        ~Surface() { if (needDeallocate) { SDL_FreeSurface(ptr); } }
+        Surface(Surface&& s): PointerHolder((PointerHolder&&)s)
+                              ,needDeallocate(s.needDeallocate) {}
+        static Surface loadBMP(const std::string& path);
         struct LoadFailure : public error::RuntimeError {
             using error::RuntimeError::RuntimeError;
         };
         struct BlitFailure : public error::RuntimeError {
             using error::RuntimeError::RuntimeError;
         };
-        void blit(const Surface_Base& src);
-        Surface_Base&& getBase() { return std::move(*this);}
+        struct ConvertFailure : public error::RuntimeError {
+            using error::RuntimeError::RuntimeError;
+        };
+        void blit(const Surface& src);
+        void blit(const Position& destpos, const Surface& src,
+                  const Rectangular& srcrect);
+        void blitScaled(const Surface& src);
+        void blitScaled(const Rectangular& destrect, const Surface& src,
+                  const Rectangular& srcrect);
+        PixelFormat format() { return ptr->format; }
+        Surface convert(PixelFormat format) {
+            SDL_Surface *newsuf = SDL_ConvertSurface(ptr, format, 0);
+            if (!newsuf) throw ConvertFailure();
+            return Surface(newsuf);
+        }
     };
-
-    class Surface : public Surface_Base {
-    public:
-        Surface(SDL_Surface *p) : Surface_Base(p) {}
-        ~Surface() { SDL_FreeSurface(ptr); }
-        Surface(Surface&& s) : Surface_Base(s.getBase()) {}
-        static Surface loadBMP(const std::string& path);
-    };
-
-    class InternalSurface : public Surface_Base {
-    public:
-        InternalSurface(SDL_Surface *p) : Surface_Base(p) {}
-        InternalSurface(Surface&& s) : Surface_Base(s.getBase()) {}
-    };
-
 
     class Window : public PointerHolder<SDL_Window> {
         friend Handler;
@@ -196,7 +201,7 @@ namespace sdlpp {
         Window(Window&& w) : PointerHolder((PointerHolder&&)w) {}
         ~Window();
         void update() { SDL_UpdateWindowSurface(ptr); };
-        InternalSurface getSurface();
+        Surface getSurface() { return Surface(SDL_GetWindowSurface(ptr), true); }
     };
 
     struct Initializer;

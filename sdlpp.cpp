@@ -29,12 +29,6 @@ std::string error::getmsg()
     return smsg;
 }
 
-InternalSurface
-Window::getSurface()
-{
-    return InternalSurface(SDL_GetWindowSurface(ptr));
-}
-
 Surface
 Surface::loadBMP(const std::string& path)
 {
@@ -46,9 +40,37 @@ Surface::loadBMP(const std::string& path)
 }
 
 void
-Surface_Base::blit(const Surface_Base& src)
+Surface::blit(const Surface& src)
 {
     if (SDL_BlitSurface(src.ptr, NULL, ptr, NULL) != 0) {
+        throw BlitFailure();
+    }
+}
+
+
+void
+Surface::blitScaled(const Surface& src)
+{
+    if (SDL_BlitScaled(src.ptr, nullptr, ptr, nullptr) != 0) {
+        throw BlitFailure();
+    }
+}
+
+void
+Surface::blit(const Position& destpos, const Surface& src,
+              const Rectangular& srcrect)
+{
+    Rectangular dest = Rectangular(0, 0, destpos);
+    if (SDL_BlitSurface(src.ptr, srcrect.toSdlRect(), ptr, dest.toSdlRect()) != 0) {
+        throw BlitFailure();
+    }
+}
+
+void
+Surface::blitScaled(const Rectangular& destrect, const Surface& src,
+              const Rectangular& srcrect)
+{
+    if (SDL_BlitScaled(src.ptr, srcrect.toSdlRect(), ptr, destrect.toSdlRect()) != 0) {
         throw BlitFailure();
     }
 }
