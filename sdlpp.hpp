@@ -10,6 +10,9 @@
 
 namespace sdlpp {
 
+    typedef std::uint32_t Timestamp;
+    typedef std::uint32_t WindowID;
+
     namespace os {
         inline void delay(std::uint32_t ms) { SDL_Delay(ms); }
     }
@@ -20,6 +23,63 @@ namespace sdlpp {
             RuntimeError(const std::string& m) : std::runtime_error(m) {}
             RuntimeError() : std::runtime_error(getmsg()) {}
         };
+    }
+
+    namespace event {
+        enum EventType {
+            Quit = SDL_QUIT,
+            AppTerminating = SDL_APP_TERMINATING,
+            AppLowMemory = SDL_APP_LOWMEMORY,
+            AppWillEnterBackground = SDL_APP_WILLENTERBACKGROUND,
+            AppDidEnterBackground = SDL_APP_DIDENTERBACKGROUND,
+            AppWillEnterForeground = SDL_APP_WILLENTERFOREGROUND,
+            AppDidEnterForeground = SDL_APP_DIDENTERFOREGROUND,
+            Window = SDL_WINDOWEVENT,
+            System = SDL_SYSWMEVENT,
+            KeyDown = SDL_KEYDOWN,
+            KeyUp = SDL_KEYUP,
+            TextEditing = SDL_TEXTEDITING,
+            TextInput = SDL_TEXTINPUT,
+            MouseMotion = SDL_MOUSEMOTION,
+            MouseButtonDown = SDL_MOUSEBUTTONDOWN,
+            MouseButtonUp = SDL_MOUSEBUTTONUP,
+            MouseWheel = SDL_MOUSEWHEEL,
+            // TODO Joystick events
+            // TODO controller events
+            // TODO Touch events
+            // TODO Gesture events
+            // TODO Clipboard events
+            User = SDL_USEREVENT,
+        };
+
+        class Event {
+        public:
+            EventType getType() const { return (EventType)data.type; }
+            bool poll() { return !!SDL_PollEvent(&data); }
+            bool wait() { return !!SDL_WaitEvent(&data); }
+        protected:
+            SDL_Event data;
+        };
+
+        class WindowEvent : public Event {
+            
+        };
+
+        class KeyEvent : public Event {
+        public:
+            typedef SDL_Scancode Scancode;
+            typedef SDL_Keycode Keycode;
+            typedef SDL_Keymod Keymod;
+            Timestamp timestamp() const { return data.key.timestamp;}
+            WindowID windowID() const { return data.key.windowID; }
+            bool released() const { return data.key.state == SDL_RELEASED; }
+            bool pressed() const { return data.key.state == SDL_PRESSED; }
+            bool repeat() const{ return data.key.repeat == 0; }
+            Scancode scancode() const {return data.key.keysym.scancode; }
+            Keymod   mod() const { return (SDL_Keymod)data.key.keysym.mod; }
+            Keycode  code() const { return data.key.keysym.sym; }
+        };
+
     }
 
     struct WindowPosition {
