@@ -176,8 +176,9 @@ namespace sdlpp {
             // compact memory
             EventHandler dump();
         };
-    }
+    } // end namespace event
 
+    //! window position represented by x and y coordinate
     struct Position {
         int x;
         int y;
@@ -191,6 +192,7 @@ namespace sdlpp {
     };
 
     class Handler;
+
     class WindowMode {
         friend Handler;
         std::uint32_t value;
@@ -208,6 +210,7 @@ namespace sdlpp {
         WindowMode borderless();
     };
 
+    //! 4-tuple, x, y coordinate, weight and height
     struct Rectangular {
         Rectangular(int wi, int hi,
                     const Position& pos = Position())
@@ -221,6 +224,7 @@ namespace sdlpp {
 
     typedef const SDL_PixelFormat* PixelFormat;
 
+    //! general template base class for hold a c pointer
     template<typename T>
     class PointerHolder {
     public:
@@ -238,22 +242,37 @@ namespace sdlpp {
 
     class Window;
     class Texture;
+
+    // wrap SDL_Renderer
     class Renderer : public PointerHolder<SDL_Renderer> {
         friend Window;
         Renderer(SDL_Renderer* p);
     public:
         ~Renderer();
         Renderer(Renderer&& r);
+        //! clear the current rendering target with the drawing color
         void clear();
-        void copy(Texture& texture);
+
+        /*!
+         * copy a portion of the texture to the current rendering target.
+         * The texture will be stretched to fill the given rectangle
+         */
+        void copy(Texture& texture, const Rectangular* srcrect = nullptr,
+                const Rectangular* destrect = nullptr);
+
+        //! update the screen with rendering performed
         void present();
     };
 
+    //! a collection of pixels used in software blitting
     class Surface : public PointerHolder<SDL_Surface> {
         friend Window;
     private:
         bool needDeallocate;
-        // default is unmanaged surface, need to be freed
+
+        /*!
+         * @parma managed true when no need to call SDL_DestroySurface
+         */
         Surface(SDL_Surface *p, bool managed = false);
     public:
         ~Surface();
@@ -268,13 +287,15 @@ namespace sdlpp {
         struct ConvertFailure : public error::RuntimeError {
             using error::RuntimeError::RuntimeError;
         };
-        void blit(const Surface& src);
-        void blit(const Position& destpos, const Surface& src,
-                  const Rectangular& srcrect);
-        void blitScaled(const Surface& src);
-        void blitScaled(const Rectangular& destrect, const Surface& src,
-                  const Rectangular& srcrect);
-        PixelFormat format();
+        void blit(const Surface& src,
+                  const Rectangular* srcrect = nullptr,
+                  const Position* destpos = nullptr);
+        void blitScaled(const Surface& src, const Rectangular* srcrect = nullptr,
+                  const Rectangular* destrect = nullptr);
+        PixelFormat getFormat();
+
+        //! copy an existing surface into a new one that is optimized for
+        //! blitting to a surface of a specified pixel format
         Surface convert(PixelFormat format);
     };
 
@@ -293,7 +314,9 @@ namespace sdlpp {
         };
         Window(Window&& w);
         ~Window();
+        //! copy the window surface to the screen
         void update();
+
         Surface getSurface();
         Renderer getRenderer();
     };
@@ -305,23 +328,48 @@ namespace sdlpp {
         Handler() {};
     public:
         ~Handler() { SDL_Quit(); }
+
+        //! create a window
+        /*!
+         * @parma title the title of the window, in UTF-8 encoding
+         * @parma rect position and height, width of window
+         * @parma wm window properties
+         */
         Window createWindow(const std::string& title,
                             const Rectangular& rect,
                             WindowMode wm = WindowMode());
     };
 
+    //! initalize sdl subsytems
     struct Initializer {
         struct InitFailure : error::RuntimeError { using error::RuntimeError::RuntimeError;};
         const std::uint32_t value;
         Initializer() : value(0) {}
+
+        //! activate timer subsystem
         Initializer timer();
+        //! activate audio subsystem
         Initializer audio();
+        //! activate video subsystem
         Initializer video();
+        //! activate joystick subsystem
         Initializer joyStick();
+        //! activate gameconstroller subsystem
         Initializer gameControoler();
+        //! activate events subsystem
         Initializer events();
+        //! activate eveny subsystem
         Initializer everything();
+
+        //! don't catch fatal signals
+        /*!
+         * Unless the SDL_INIT_NOPARACHUTE flag is set, it will install
+         * cleanup signal handlers for some commonly ignored fatal signals
+         * (like SIGSEGV).
+         */
         Initializer noParachute();
+
+        //! get a handler has features specified in this Initializer
         Handler acquire();
     private:
         Initializer(std::uint32_t v);
@@ -432,7 +480,7 @@ namespace sdlpp {
     inline Surface::~Surface() { if (needDeallocate) { SDL_FreeSurface(ptr); } }
     inline Surface::Surface(Surface&& s): PointerHolder((PointerHolder&&)s),
                                  needDeallocate(s.needDeallocate) {}
-    inline PixelFormat Surface::format() { return ptr->format; }
+    inline PixelFormat Surface::getFormat() { return ptr->format; }
     inline Surface Surface::convert(PixelFormat format) {
         SDL_Surface *newsuf = SDL_ConvertSurface(ptr, format, 0);
         if (!newsuf) throw ConvertFailure();

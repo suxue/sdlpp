@@ -19,7 +19,7 @@ main
     auto path  = string(SDLPP_DEMO_DATA_DIR) + "hello.bmp";
     cout << path << endl;
     auto src = Surface::loadBMP(path);
-    auto srcopt = src.convert(dest.format());
+    auto srcopt = src.convert(dest.getFormat());
     auto renderer = window.getRenderer();
     Texture texture(renderer, srcopt);
     renderer.copy(texture);

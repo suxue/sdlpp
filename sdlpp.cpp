@@ -40,45 +40,43 @@ Surface::loadBMP(const std::string& path)
     return Surface(p);
 }
 
+
 void
-Surface::blit(const Surface& src)
+Surface::blit(const Surface& src,
+              const Rectangular* srcrect,
+        const Position* destpos)
 {
-    if (SDL_BlitSurface(src.ptr, NULL, ptr, NULL) != 0) {
-        throw BlitFailure();
+    SDL_Rect tmp;
+    if (destpos) {
+        tmp.x = destpos->x;
+        tmp.y = destpos->y;
     }
-}
 
-
-void
-Surface::blitScaled(const Surface& src)
-{
-    if (SDL_BlitScaled(src.ptr, nullptr, ptr, nullptr) != 0) {
-        throw BlitFailure();
-    }
-}
-
-void
-Surface::blit(const Position& destpos, const Surface& src,
-              const Rectangular& srcrect)
-{
-    Rectangular dest = Rectangular(0, 0, destpos);
-    if (SDL_BlitSurface(src.ptr, srcrect.toSdlRect(), ptr, dest.toSdlRect()) != 0) {
+    if (SDL_BlitSurface(src.ptr,
+            srcrect == nullptr ? nullptr : srcrect->toSdlRect(),
+            ptr, destpos == nullptr ? nullptr : &tmp) != 0) {
         throw BlitFailure();
     }
 }
 
 void
-Surface::blitScaled(const Rectangular& destrect, const Surface& src,
-              const Rectangular& srcrect)
+Surface::blitScaled(const Surface& src, const Rectangular* srcrect,
+                    const Rectangular* destrect)
 {
-    if (SDL_BlitScaled(src.ptr, srcrect.toSdlRect(), ptr, destrect.toSdlRect()) != 0) {
+    if (SDL_BlitScaled(
+                src.ptr, srcrect == nullptr ? nullptr : srcrect->toSdlRect(),
+                ptr, destrect == nullptr ? nullptr : destrect->toSdlRect())
+            != 0) {
         throw BlitFailure();
     }
 }
 
 void
-Renderer::copy(Texture& texture) {
-    if (SDL_RenderCopy(ptr, texture.get(), nullptr, nullptr)) {
+Renderer::copy(Texture& texture, const Rectangular* src, const Rectangular* dest)
+{
+    if (SDL_RenderCopy(ptr, texture.get(),
+                src == nullptr ? nullptr : src->toSdlRect(),
+                dest == nullptr ? nullptr : dest->toSdlRect())) {
         throw error::RuntimeError();
     }
 }
