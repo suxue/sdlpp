@@ -2,7 +2,6 @@
 #include "config.h"
 #include <string>
 #include <iostream>
-#define str(s) #s
 
 using namespace sdlpp;
 using namespace std;
@@ -13,7 +12,6 @@ int
 main
 (int argc, char *argv[])
 {
-
     auto path  = string(SDLPP_DEMO_DATA_DIR) + "hello.jpg";
     cout << path << endl;
     auto src = Surface::loadIMG(path);

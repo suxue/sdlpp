@@ -240,6 +240,8 @@ namespace sdlpp {
     };
 
     struct Color {
+        Color(std::uint8_t r, std::uint8_t g,
+              std::uint8_t b, std::uint8_t a = 0xff);
         std::uint8_t red;
         std::uint8_t green;
         std::uint8_t blue;
@@ -313,6 +315,12 @@ namespace sdlpp {
         PixelFormat getFormat();
         int getWidth();
         int getHeight();
+
+        //! set the color key (transparent pixel) in a surface
+        void setColorKey(const Color& c);
+
+        //! clear the color key (transparent pixel) in a surface
+        void unsetColorKey(const Color& c);
 
         //! copy an existing surface into a new one that is optimized for
         //! blitting to a surface of a specified pixel format
@@ -583,6 +591,25 @@ namespace sdlpp {
     inline int Surface::getHeight() {
         return ptr->h;
     }
+
+    inline void Surface::setColorKey(const Color& c) {
+        if (SDL_SetColorKey(ptr, true,
+                    SDL_MapRGB(getFormat(), c.red, c.green, c.blue)) < 0) {
+            throw error::RuntimeError();
+        }
+    }
+
+    inline void Surface::unsetColorKey(const Color& c) {
+        if (SDL_SetColorKey(ptr, false,
+                    SDL_MapRGB(getFormat(), c.red, c.green, c.blue)) < 0) {
+            throw error::RuntimeError();
+        }
+    }
+
+
+    inline Color::Color(std::uint8_t r, std::uint8_t g,
+          std::uint8_t b, std::uint8_t a)
+        : red(r), green(g), blue(b), alpha(a) { }
 
 }
 
