@@ -241,6 +241,13 @@ namespace sdlpp {
         PointerHolder& operator=(const PointerHolder&);
     };
 
+    struct Color {
+        std::uint8_t red;
+        std::uint8_t green;
+        std::uint8_t blue;
+        std::uint8_t alpha;
+    };
+
     class Window;
     class Texture;
 
@@ -263,6 +270,15 @@ namespace sdlpp {
 
         //! update the screen with rendering performed
         void present();
+
+        //! set the color used for drawing operations (Rect, Line and
+        //! Clear)
+        void setDrawColor(const Color& color);
+
+        // fill rectangular with current color
+        void fillRect(const Rectangular* rect);
+        void drawLine(int x1, int y1, int x2, int y2);
+        void drawPoint(int x, int y);
     };
 
     //! a collection of pixels used in software blitting
@@ -522,6 +538,31 @@ namespace sdlpp {
     }
 
     inline Initializer::Initializer(std::uint32_t v) : value(v) {}
+
+    inline void Renderer::setDrawColor(const Color& color) {
+        if (SDL_SetRenderDrawColor(ptr, color.red, color.green, color.blue,
+                   color.alpha) < 0) {
+            throw error::RuntimeError();
+        }
+    }
+
+    inline void Renderer::fillRect(const Rectangular* rect) {
+        if (SDL_RenderFillRect(ptr, rect ? rect->toSdlRect() : nullptr) < 0) {
+            throw error::RuntimeError();
+        }
+    }
+
+    inline void Renderer::drawLine(int x1, int y1, int x2, int y2) {
+        if (SDL_RenderDrawLine(ptr, x1, y1, x2, y2) < 0) {
+            throw error::RuntimeError();
+        }
+    }
+
+    inline void Renderer::drawPoint(int x, int y) {
+        if (SDL_RenderDrawPoint(ptr, x, y) < 0) {
+            throw error::RuntimeError();
+        }
+    }
 }
 
 #endif
