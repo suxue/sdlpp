@@ -76,9 +76,16 @@ Surface::blitScaled(const Rectangular& destrect, const Surface& src,
     }
 }
 
+void
+Renderer::copy(Texture& texture) {
+    if (SDL_RenderCopy(ptr, texture.get(), nullptr, nullptr)) {
+        throw error::RuntimeError();
+    }
+}
+
 namespace event {
 
-    void EventHandler::initptr()
+    void EventData::initptr()
     {
         if (!ptr) {
             ptr = std::unique_ptr<SDL_Event>(new SDL_Event());

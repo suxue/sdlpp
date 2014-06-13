@@ -20,8 +20,13 @@ main
     cout << path << endl;
     auto src = Surface::loadBMP(path);
     auto srcopt = src.convert(dest.format());
-    dest.blitScaled(srcopt);
-    window.update();
+    auto renderer = window.getRenderer();
+    Texture texture(renderer, srcopt);
+    renderer.copy(texture);
+    renderer.present();
+
+    // dest.blitScaled(srcopt);
+    // window.update();
     event::EventData e;
     while (true) {
         event::wait(e);
