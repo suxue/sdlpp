@@ -3,8 +3,10 @@
 #include <string>
 #include <iostream>
 #define str(s) #s
+
 using namespace sdlpp;
 using namespace std;
+using namespace sdlpp::event;
 
 
 int
@@ -27,12 +29,16 @@ main
 
     // dest.blitScaled(srcopt);
     // window.update();
-    event::EventData e;
+    EventData e;
     while (true) {
         event::wait(e);
-        auto x = e.dump();
-        if (x.getType() == event::EventType::Quit) {
+        if (e.getType() == EventType::Quit) {
             break;
+        } else if (e.getType() == EventType::Window) {
+            auto p = e.acquire<EventType::Window>();
+            if (p.getID() == SDL_WINDOWEVENT_EXPOSED) { // redraw
+                renderer.present();
+            }
         }
     }
     return 0;

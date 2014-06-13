@@ -111,6 +111,9 @@ namespace sdlpp {
         public:
             typedef Event type;
             static const type extract(const SDL_Event* e) { return Event(&e->window); }
+            SDL_WindowEventID getID() const {
+                return (SDL_WindowEventID)ptr->event;
+            }
         };
 
         class EventData;
@@ -150,8 +153,6 @@ namespace sdlpp {
 
             EventType::type getType();
             Timestamp getTimeStamp();
-
-            const Event<EventType::Window> getWindowEvent();
         protected:
            std::unique_ptr<SDL_Event> ptr; //!< delegate move semantics to unique_ptr
            static EventHandler create(SDL_Event*e);
@@ -423,10 +424,6 @@ namespace sdlpp {
             } else {
                 throw DereferenceFailure();
             }
-        }
-
-        inline const Event<EventType::Window> EventHandler::getWindowEvent() {
-            return acquire<EventType::Window>();
         }
 
         inline EventHandler EventHandler::create(SDL_Event*e) {
