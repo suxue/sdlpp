@@ -7,6 +7,8 @@
 #include <string>
 #include <iostream>
 #include <cstdint>
+#include <boost/utility.hpp>
+#include <memory>
 
 namespace sdlpp {
 
@@ -26,59 +28,93 @@ namespace sdlpp {
     }
 
     namespace event {
-        enum EventType {
-            Quit = SDL_QUIT,
-            AppTerminating = SDL_APP_TERMINATING,
-            AppLowMemory = SDL_APP_LOWMEMORY,
-            AppWillEnterBackground = SDL_APP_WILLENTERBACKGROUND,
-            AppDidEnterBackground = SDL_APP_DIDENTERBACKGROUND,
-            AppWillEnterForeground = SDL_APP_WILLENTERFOREGROUND,
-            AppDidEnterForeground = SDL_APP_DIDENTERFOREGROUND,
-            Window = SDL_WINDOWEVENT,
-            System = SDL_SYSWMEVENT,
-            KeyDown = SDL_KEYDOWN,
-            KeyUp = SDL_KEYUP,
-            TextEditing = SDL_TEXTEDITING,
-            TextInput = SDL_TEXTINPUT,
-            MouseMotion = SDL_MOUSEMOTION,
-            MouseButtonDown = SDL_MOUSEBUTTONDOWN,
-            MouseButtonUp = SDL_MOUSEBUTTONUP,
-            MouseWheel = SDL_MOUSEWHEEL,
-            // TODO Joystick events
-            // TODO controller events
-            // TODO Touch events
-            // TODO Gesture events
-            // TODO Clipboard events
-            User = SDL_USEREVENT,
+
+        struct EventType {
+            enum type {
+                Window,
+                Keyboard,
+                TextEditing,
+                MouseMotion,
+                MouseButton,
+                MouseWheel,
+                Quit,
+                User,
+            };
         };
 
-        class Event {
-        public:
-            EventType getType() const { return (EventType)data.type; }
-            bool poll() { return !!SDL_PollEvent(&data); }
-            bool wait() { return !!SDL_WaitEvent(&data); }
+        template<typename T>
+        class EventBase {
         protected:
-            SDL_Event data;
+            const T* ptr;
+            typedef const T* PointType;
+            EventBase(const T* p) : ptr(p) {}
         };
 
-        class WindowEvent : public Event { /* TODO */ };
+        template<EventType::type T>
+        class Event;
 
-        class KeyEvent : public Event {
+        template<>
+        class Event<EventType::Window> : protected EventBase<SDL_WindowEvent> {
+            Event(PointType p) : EventBase(p) {}
         public:
-            typedef SDL_Scancode Scancode;
-            typedef SDL_Keycode Keycode;
-            typedef SDL_Keymod Keymod;
-            Timestamp timestamp() const { return data.key.timestamp;}
-            WindowID windowID() const { return data.key.windowID; }
-            bool released() const { return data.key.state == SDL_RELEASED; }
-            bool pressed() const { return data.key.state == SDL_PRESSED; }
-            bool repeat() const{ return data.key.repeat == 0; }
-            Scancode scancode() const {return data.key.keysym.scancode; }
-            Keymod   mod() const { return (SDL_Keymod)data.key.keysym.mod; }
-            Keycode  code() const { return data.key.keysym.sym; }
+            typedef Event type;
+            static const type extract(const SDL_Event* e) {
+                return Event(&e->window);
+            }
+        };
+
+        class EventHandler;
+        bool poll(EventHandler& eh);
+        void wait(EventHandler& eh);
+
+        class EventHandler {
+            friend bool poll(EventHandler& eh);
+            friend void wait(EventHandler& eh);
+        public:
+            class DereferenceFailure : public error::RuntimeError {
+                using error::RuntimeError::RuntimeError;
+            };
+            EventHandler() : ptr() {}
+            EventHandler(EventHandler&& e) : ptr(std::move(e.ptr)) {}
+            EventHandler& operator=(EventHandler&& e) {
+                ptr = std::move(e.ptr);
+                return *this;
+            }
+            template<EventType::type t>
+            const Event<t> acquire() {
+                if (ptr) {
+                    return Event<t>::extract(ptr.get());
+                } else {
+                    throw DereferenceFailure();
+                }
+            }
+
+            EventType::type getType() {
+                switch (ptr->type) {
+                    case SDL_WINDOWEVENT:
+                        return EventType::Window;
+                    case SDL_QUIT:
+                        return EventType::Quit;
+                    default:
+                        return EventType::Window;
+                }
+            }
+
+            const Event<EventType::Window> getWindowEvent() {
+                return acquire<EventType::Window>();
+            }
+
+            virtual ~EventHandler() {}
+        private:
+           std::unique_ptr<SDL_Event> ptr;
+           // deleted
+           EventHandler(const EventHandler& e);
+           EventHandler& operator=(const EventHandler& e);
+           void initptr();
         };
 
     }
+
 
     struct Position {
         int x;

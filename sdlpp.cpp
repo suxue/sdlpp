@@ -75,4 +75,26 @@ Surface::blitScaled(const Rectangular& destrect, const Surface& src,
     }
 }
 
+namespace event {
+
+    void EventHandler::initptr()
+    {
+        if (!ptr) {
+            ptr = std::unique_ptr<SDL_Event>(new SDL_Event());
+        }
+    }
+
+    bool poll(EventHandler &eh)
+    {
+        eh.initptr();
+        return !!SDL_PollEvent(eh.ptr.get());
+    }
+
+    void wait(EventHandler &eh)
+    {
+        eh.initptr();
+        SDL_WaitEvent(eh.ptr.get());
+    }
+
+} // end namespace event
 } //end namespace sdlpp
