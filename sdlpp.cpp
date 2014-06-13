@@ -1,6 +1,7 @@
 #include "sdlpp.hpp"
 #include <iostream>
 #include <functional>
+#include <cstring>
 namespace sdlpp {
 
 Window
@@ -84,16 +85,35 @@ namespace event {
         }
     }
 
-    bool poll(EventHandler &eh)
+    bool poll(EventData &eh)
     {
         eh.initptr();
         return !!SDL_PollEvent(eh.ptr.get());
     }
 
-    void wait(EventHandler &eh)
+    void wait(EventData &eh)
     {
         eh.initptr();
         SDL_WaitEvent(eh.ptr.get());
+    }
+
+    EventHandler EventData::dump()
+    {
+        size_t size;
+        switch (ptr->type) {
+            case SDL_WINDOWEVENT:
+                size = sizeof(SDL_WindowEvent);
+                break;
+            case SDL_QUIT:
+                size = sizeof(SDL_CommonEvent);
+                break;
+            default:
+                size = sizeof(*ptr.get());
+                break;
+        }
+        char *p = new char[size];
+        std::memmove((void*)p, ptr.get(), size);
+        return create((SDL_Event*)p);
     }
 
 } // end namespace event

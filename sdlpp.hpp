@@ -63,13 +63,11 @@ namespace sdlpp {
             }
         };
 
-        class EventHandler;
-        bool poll(EventHandler& eh);
-        void wait(EventHandler& eh);
+        class EventData;
+        bool poll(EventData& eh);
+        void wait(EventData& eh);
 
         class EventHandler {
-            friend bool poll(EventHandler& eh);
-            friend void wait(EventHandler& eh);
         public:
             class DereferenceFailure : public error::RuntimeError {
                 using error::RuntimeError::RuntimeError;
@@ -100,19 +98,37 @@ namespace sdlpp {
                 }
             }
 
+            Timestamp getTimeStamp() {
+                if (ptr) {
+                    return ptr->common.timestamp;
+                } else {
+                    throw DereferenceFailure();
+                }
+            }
+
             const Event<EventType::Window> getWindowEvent() {
                 return acquire<EventType::Window>();
             }
 
             virtual ~EventHandler() {}
-        private:
+        protected:
            std::unique_ptr<SDL_Event> ptr;
+           static EventHandler create(SDL_Event*e) { return EventHandler(e); }
+           void initptr();
+        private:
            // deleted
            EventHandler(const EventHandler& e);
+           EventHandler(SDL_Event*e) : ptr(e) {};
            EventHandler& operator=(const EventHandler& e);
-           void initptr();
         };
 
+        class EventData : public EventHandler {
+            friend bool poll(EventData& eh);
+            friend void wait(EventData& eh);
+        public:
+            // compact memory
+            EventHandler dump();
+        };
     }
 
 

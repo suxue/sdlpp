@@ -4,6 +4,7 @@
 #include <iostream>
 #define str(s) #s
 using namespace sdlpp;
+using namespace std;
 
 
 int
@@ -15,16 +16,17 @@ main
     auto window = sdl.createWindow("sdlpp_demo", Rectangular(800, 600),
             wm.opengl());
     auto dest = window.getSurface();
-    auto path  = std::string(SDLPP_DEMO_DATA_DIR) + "hello.bmp";
-    std::cout << path << std::endl;
+    auto path  = string(SDLPP_DEMO_DATA_DIR) + "hello.bmp";
+    cout << path << endl;
     auto src = Surface::loadBMP(path);
     auto srcopt = src.convert(dest.format());
     dest.blitScaled(srcopt);
     window.update();
-    event::EventHandler e;
+    event::EventData e;
     while (true) {
         event::wait(e);
-        if (e.getType() == event::EventType::Quit) {
+        auto x = e.dump();
+        if (x.getType() == event::EventType::Quit) {
             break;
         }
     }
