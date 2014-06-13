@@ -13,14 +13,19 @@ int
 main
 (int argc, char *argv[])
 {
+
+    auto path  = string(SDLPP_DEMO_DATA_DIR) + "hello.jpg";
+    cout << path << endl;
+    auto src = Surface::loadIMG(path);
+    int height = src.getHeight();
+    int width = src.getWidth();
+
+
     Handler sdl = Initializer().acquire();
     auto wm = WindowMode();
-    auto window = sdl.createWindow("sdlpp_demo", Rectangular(800, 600),
+    auto window = sdl.createWindow("sdlpp_demo", Rectangular(width, height),
             wm.opengl());
     auto dest = window.getSurface();
-    auto path  = string(SDLPP_DEMO_DATA_DIR) + "hello.bmp";
-    cout << path << endl;
-    auto src = Surface::loadBMP(path);
     auto srcopt = src.convert(dest.getFormat());
     auto renderer = window.getRenderer();
     Texture texture(renderer, srcopt);

@@ -40,6 +40,15 @@ Surface::loadBMP(const std::string& path)
     return Surface(p);
 }
 
+Surface
+Surface::loadIMG(const std::string& path)
+{
+    auto p = IMG_Load(path.c_str());
+    if (!p) {
+        throw LoadFailure();
+    }
+    return Surface(p);
+}
 
 void
 Surface::blit(const Surface& src,

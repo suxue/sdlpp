@@ -5,6 +5,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(sdlpp sdlpp.cpp)
 link_libraries(sdlpp ${SDL2_LIBRARY})
+link_libraries(sdlpp SDL2_image)
 if(MSVC)
     link_libraries(${SDL2_LIBRARY} winmm)
     link_libraries($(SDL2_LIBRARY) user32)

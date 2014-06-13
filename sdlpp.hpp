@@ -110,10 +110,8 @@ namespace sdlpp {
             Event(PointType p) : EventBase(p) {}
         public:
             typedef Event type;
-            static const type extract(const SDL_Event* e) { return Event(&e->window); }
-            SDL_WindowEventID getID() const {
-                return (SDL_WindowEventID)ptr->event;
-            }
+            static const type extract(const SDL_Event* e);
+            SDL_WindowEventID getID() const;
         };
 
         class EventData;
@@ -295,6 +293,9 @@ namespace sdlpp {
         ~Surface();
         Surface(Surface&& s);
         static Surface loadBMP(const std::string& path);
+
+        //! load image through SDL2_image extension library
+        static Surface loadIMG(const std::string& path);
         struct LoadFailure : public error::RuntimeError {
             using error::RuntimeError::RuntimeError;
         };
@@ -310,6 +311,8 @@ namespace sdlpp {
         void blitScaled(const Surface& src, const Rectangular* srcrect = nullptr,
                   const Rectangular* destrect = nullptr);
         PixelFormat getFormat();
+        int getWidth();
+        int getHeight();
 
         //! copy an existing surface into a new one that is optimized for
         //! blitting to a surface of a specified pixel format
@@ -445,6 +448,15 @@ namespace sdlpp {
         inline EventHandler EventHandler::create(SDL_Event*e) {
             return EventHandler(e);
         }
+
+        inline SDL_WindowEventID Event<EventType::Window>::getID() const {
+            return (SDL_WindowEventID)ptr->event;
+        }
+
+        inline const Event<EventType::Window>
+        Event<EventType::Window>::extract(const SDL_Event* e) {
+            return Event(&e->window);
+        }
     }
 
 
@@ -563,6 +575,15 @@ namespace sdlpp {
             throw error::RuntimeError();
         }
     }
+
+    inline int Surface::getWidth() {
+        return ptr->w;
+    }
+
+    inline int Surface::getHeight() {
+        return ptr->h;
+    }
+
 }
 
 #endif
