@@ -34,6 +34,6 @@ int main (int argc, char *argv[])
     for (auto i = 0; i < SCREEN_HEIGHT; i += 4) {
         renderer.drawPoint(SCREEN_WIDTH / 2, i);
     }
-    idlewait(renderer);
+    idlewait(renderer, window);
     return 0;
 }

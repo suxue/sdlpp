@@ -58,9 +58,10 @@ namespace sdlpp {
 
         //! root class for exceptions
         struct RuntimeError : public std::runtime_error {
-            RuntimeError(const std::string& m) : std::runtime_error(m) {}
-            RuntimeError() : std::runtime_error(getmsg()) {}
+            RuntimeError(const std::string& m);
+            RuntimeError();
         };
+#define THROW_SDLPP_RUNTIME_ERROR() (throw sdlpp::error::RuntimeError(std::string(basename((char*)__FILE__)) + ":" + std::to_string(__LINE__)))
     }
 
     //! Event Processing
@@ -222,7 +223,7 @@ namespace sdlpp {
         SDL_Rect *toSdlRect() const { return (SDL_Rect*)this; }
     };
 
-    typedef const SDL_PixelFormat* PixelFormat;
+    typedef std::uint32_t PixelFormat;
 
     //! general template base class for hold a c pointer
     template<typename T>
@@ -272,14 +273,30 @@ namespace sdlpp {
         //! update the screen with rendering performed
         void present();
 
+        //!set a texture as the current rendering target.
+        //! @warning avoid dangling pointer
+        void setTarget(Texture* texture);
+
+        //! restore default target
+        void setTarget();
+
         //! set the color used for drawing operations (Rect, Line and
         //! Clear)
         void setDrawColor(const Color& color);
 
         // fill rectangular with current color
         void fillRect(const Rectangular* rect);
+        void fillRect(const Rectangular& rect);
         void drawLine(int x1, int y1, int x2, int y2);
         void drawPoint(int x, int y);
+
+        Texture createTexture(PixelFormat format, SDL_TextureAccess access, int width, int height);
+        Texture createStaticTexture(int width, int height,
+                PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
+        Texture createStreamingTexture(int width, int height,
+                PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
+        Texture createTargetTexture(int width, int height,
+                PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
     };
 
     //! a collection of pixels used in software blitting
@@ -313,7 +330,7 @@ namespace sdlpp {
                   const Position* destpos = nullptr);
         void blitScaled(const Surface& src, const Rectangular* srcrect = nullptr,
                   const Rectangular* destrect = nullptr);
-        PixelFormat getFormat();
+        SDL_PixelFormat *getFormat();
         int getWidth();
         int getHeight();
 
@@ -325,13 +342,17 @@ namespace sdlpp {
 
         //! copy an existing surface into a new one that is optimized for
         //! blitting to a surface of a specified pixel format
-        Surface convert(PixelFormat format);
+        Surface convert(SDL_PixelFormat *format);
     };
 
     class Texture : public PointerHolder<SDL_Texture> {
+        friend Renderer;
+        Texture(SDL_Texture* t);
     public:
         Texture(Renderer& r, Surface& s);
         ~Texture();
+        void setColorMod(const Color& color);
+        Texture(Texture&& t);
     };
 
     class Window : public PointerHolder<SDL_Window> {
@@ -345,6 +366,9 @@ namespace sdlpp {
         ~Window();
         //! copy the window surface to the screen
         void update();
+
+        //! restore size and position after a minimized or maximized window
+        void restore();
 
         Surface getSurface();
         Renderer getRenderer();
@@ -411,6 +435,13 @@ namespace sdlpp {
 namespace sdlpp {
     namespace os {
         inline void delay(std::uint32_t ms) { SDL_Delay(ms); }
+    }
+
+    namespace error {
+        //! root class for exceptions
+        inline RuntimeError::RuntimeError(const std::string& m)
+            : std::runtime_error(std::string("(") + m + ") " + getmsg()) {}
+        inline RuntimeError::RuntimeError() : std::runtime_error(getmsg()) {}
     }
 
     namespace event {
@@ -506,7 +537,7 @@ namespace sdlpp {
     inline Renderer::Renderer(SDL_Renderer* p) : PointerHolder(p) {}
     inline Renderer::~Renderer() { SDL_DestroyRenderer(ptr); }
     inline Renderer::Renderer(Renderer&& r) : PointerHolder((PointerHolder&&)r) { }
-    inline void Renderer::clear() { if (SDL_RenderClear(ptr)) throw error::RuntimeError(); }
+    inline void Renderer::clear() { if (SDL_RenderClear(ptr)) THROW_SDLPP_RUNTIME_ERROR(); }
     inline void Renderer::present() { SDL_RenderPresent(ptr); }
 
     inline Surface::Surface(SDL_Surface *p, bool managed)
@@ -514,8 +545,8 @@ namespace sdlpp {
     inline Surface::~Surface() { if (needDeallocate) { SDL_FreeSurface(ptr); } }
     inline Surface::Surface(Surface&& s): PointerHolder((PointerHolder&&)s),
                                  needDeallocate(s.needDeallocate) {}
-    inline PixelFormat Surface::getFormat() { return ptr->format; }
-    inline Surface Surface::convert(PixelFormat format) {
+    inline SDL_PixelFormat *Surface::getFormat() { return ptr->format; }
+    inline Surface Surface::convert(SDL_PixelFormat *format) {
         SDL_Surface *newsuf = SDL_ConvertSurface(ptr, format, 0);
         if (!newsuf) throw ConvertFailure();
         return Surface(newsuf);
@@ -525,19 +556,20 @@ namespace sdlpp {
     inline Texture::Texture(Renderer& r, Surface& s) :
         PointerHolder(SDL_CreateTextureFromSurface(r.get(), s.get()))
     {
-        if (!ptr) { throw error::RuntimeError(); }
+        if (!ptr) { THROW_SDLPP_RUNTIME_ERROR(); }
     }
 
     inline Texture::~Texture() { SDL_DestroyTexture(ptr); }
     inline Window::Window(SDL_Window* p) : PointerHolder(p) {}
     inline Window::Window(Window&& w) : PointerHolder((PointerHolder&&)w) {}
+    inline Texture::Texture(Texture&& t) : PointerHolder((PointerHolder&&)t) {}
     inline void Window::update() { SDL_UpdateWindowSurface(ptr); }
     inline Surface Window::getSurface() { return Surface(SDL_GetWindowSurface(ptr), true); }
 
     inline Renderer Window::getRenderer() {
         auto p = SDL_CreateRenderer(this->ptr, -1, 0);
         if (!p) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         } else {
             return Renderer(p);
         }
@@ -563,25 +595,29 @@ namespace sdlpp {
     inline void Renderer::setDrawColor(const Color& color) {
         if (SDL_SetRenderDrawColor(ptr, color.red, color.green, color.blue,
                    color.alpha) < 0) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
     inline void Renderer::fillRect(const Rectangular* rect) {
         if (SDL_RenderFillRect(ptr, rect ? rect->toSdlRect() : nullptr) < 0) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         }
+    }
+
+    inline void Renderer::fillRect(const Rectangular& rect) {
+        fillRect(&rect);
     }
 
     inline void Renderer::drawLine(int x1, int y1, int x2, int y2) {
         if (SDL_RenderDrawLine(ptr, x1, y1, x2, y2) < 0) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
     inline void Renderer::drawPoint(int x, int y) {
         if (SDL_RenderDrawPoint(ptr, x, y) < 0) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
@@ -596,14 +632,14 @@ namespace sdlpp {
     inline void Surface::setColorKey(const Color& c) {
         if (SDL_SetColorKey(ptr, true,
                     SDL_MapRGB(getFormat(), c.red, c.green, c.blue)) < 0) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
     inline void Surface::unsetColorKey(const Color& c) {
         if (SDL_SetColorKey(ptr, false,
                     SDL_MapRGB(getFormat(), c.red, c.green, c.blue)) < 0) {
-            throw error::RuntimeError();
+            THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
@@ -612,6 +648,54 @@ namespace sdlpp {
           std::uint8_t b, std::uint8_t a)
         : red(r), green(g), blue(b), alpha(a) { }
 
+    inline void Texture::setColorMod(const Color& color) {
+        if (SDL_SetTextureColorMod(ptr, color.red, color.green, color.blue)
+               < 0) {
+            THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
+
+    inline void Window::restore() { SDL_RestoreWindow(ptr); }
+    inline Texture::Texture(SDL_Texture* t) : PointerHolder(t) {}
+
+    inline void Renderer::setTarget(Texture* texture) {
+        if (SDL_SetRenderTarget(ptr, texture->get()) <0) {
+            THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
+
+    inline void Renderer::setTarget() {
+        if (SDL_SetRenderTarget(ptr, nullptr) < 0) {
+            THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
+
+    inline Texture Renderer::createStaticTexture(int width, int height,
+                                                 PixelFormat format) {
+        return createTexture(format, SDL_TEXTUREACCESS_STATIC,
+                width, height);
+    }
+
+    inline Texture Renderer::createStreamingTexture(
+            int width, int height, PixelFormat format) {
+        return createTexture(format, SDL_TEXTUREACCESS_STREAMING,
+                width, height);
+    }
+
+    inline Texture Renderer::createTargetTexture(
+            int width, int height, PixelFormat format) {
+        return createTexture(format, SDL_TEXTUREACCESS_TARGET,
+                width, height);
+    }
+
+    inline Texture Renderer::createTexture(PixelFormat format,
+            SDL_TextureAccess access, int width, int height) {
+        auto tp = SDL_CreateTexture(ptr, format, access, width, height);
+        if (!tp) { THROW_SDLPP_RUNTIME_ERROR(); }
+        return Texture(tp);
+    }
+
 }
 
+#undef THROW_SDLPP_RUNTIME_ERROR
 #endif

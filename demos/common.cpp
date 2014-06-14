@@ -1,9 +1,13 @@
 #include "common.hpp"
+#include <iostream>
 
 using namespace sdlpp;
 using namespace sdlpp::event;
+using namespace std;
 
-void idlewait(Renderer& renderer)
+bool maxmin = false;
+
+void idlewait(Renderer& renderer, Window& window)
 {
     EventData e;
     while (true) {
@@ -12,8 +16,20 @@ void idlewait(Renderer& renderer)
             break;
         } else if (e.getType() == EventType::Window) {
             auto p = e.acquire<EventType::Window>();
-            if (p.getID() == SDL_WINDOWEVENT_EXPOSED) { // redraw
-                renderer.present();
+            switch (p.getID()) {
+                case SDL_WINDOWEVENT_EXPOSED:
+                    renderer.present();
+                    if (maxmin) {
+                        maxmin = true;
+                        window.restore();
+                    }
+                    break;
+                case SDL_WINDOWEVENT_MAXIMIZED:
+                case SDL_WINDOWEVENT_MINIMIZED:
+                    maxmin = true;
+                    break;
+                default:
+                    break;
             }
         }
     }

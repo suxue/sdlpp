@@ -3,6 +3,6 @@
 
 #include"sdlpp.hpp"
 #include "config.h"
-void idlewait(sdlpp::Renderer& renderer);
+void idlewait(sdlpp::Renderer& renderer, sdlpp::Window& window);
 
 #endif

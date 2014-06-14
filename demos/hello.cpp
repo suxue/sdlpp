@@ -31,6 +31,6 @@ main
 
     // dest.blitScaled(srcopt);
     // window.update();
-    idlewait(renderer);
+    idlewait(renderer, window);
     return 0;
 }

@@ -50,6 +50,6 @@ int main(int argc, char *argv[])
     }
     renderer.present();
 
-    idlewait(renderer);
+    idlewait(renderer, window);
     return 0;
 }
