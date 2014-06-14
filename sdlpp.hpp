@@ -68,7 +68,7 @@ namespace sdlpp {
 #define THROW_SDLPP_RUNTIME_ERROR() (throw sdlpp::error::RuntimeError(std::string(__FILE__) + ":" + std::to_string(TO_NUMBER(__LINE__))))
     }
 
-    //! Event Processing
+    //! %Event Processing
     /*!
      */
     namespace event {
@@ -88,7 +88,7 @@ namespace sdlpp {
             };
         };
 
-        //! Base class for all Event specifilizations
+        //! base class for all Event specifilizations
         template<typename T>
         class EventBase {
         protected:
@@ -109,7 +109,7 @@ namespace sdlpp {
         template<EventType::type T>
         class Event;
 
-        //! window event
+        //! %window event
         template<>
         class Event<EventType::Window> : protected EventBase<SDL_WindowEvent> {
             Event(PointType p) : EventBase(p) {}
@@ -153,7 +153,7 @@ namespace sdlpp {
         //! like poll, but will block until interesting events happen
         void wait(EventData& eh);
 
-        //! event that could be pass around
+        //! %event that could be pass around
         /*!
           a unique_ptr like wrapper which is constructed from
           EventData, has move ctor and assignment but noncopyable. Through
@@ -189,7 +189,7 @@ namespace sdlpp {
            EventHandler& operator=(const EventHandler& e);
         };
 
-        //! event that can be polled or waited
+        //! %event that can be polled or waited
         /*!
          *   the storage to store events. It has the same
          *   interface as EventHandler but neither noncopyable nor moveable.
@@ -204,7 +204,7 @@ namespace sdlpp {
         };
     } // end namespace event
 
-    //! window position represented by x and y coordinate
+    //! a position/point represented by pair of x and y coordinate
     struct Position {
         int x;
         int y;
@@ -219,6 +219,7 @@ namespace sdlpp {
 
     class Handler;
 
+    //! see Handler::createWindow
     class WindowMode {
         friend Handler;
         std::uint32_t value;
@@ -236,7 +237,7 @@ namespace sdlpp {
         WindowMode borderless();
     };
 
-    //! 4-tuple, x, y coordinate, weight and height
+    //! a quadruple structure, x, y coordinate, weight and height
     struct Rectangular {
         Rectangular(int wi, int hi,
                     const Position& pos = Position())
@@ -267,6 +268,7 @@ namespace sdlpp {
         PointerHolder& operator=(const PointerHolder&);
     };
 
+    //! structure represents color by RGB and alpha value
     struct Color {
         Color(std::uint8_t r, std::uint8_t g,
               std::uint8_t b, std::uint8_t a = 0xff);
@@ -279,7 +281,7 @@ namespace sdlpp {
     class Window;
     class Texture;
 
-    // wrap SDL_Renderer
+    //! A Renderer always associsated with a Window
     class Renderer : public PointerHolder<SDL_Renderer> {
         friend Window;
         Renderer(SDL_Renderer* p);
@@ -371,6 +373,8 @@ namespace sdlpp {
         Surface convert(SDL_PixelFormat *format);
     };
 
+    //! small object which is moveable and repsent a canvas
+    /*! like a Surface but is optimized for GPU renderin */
     class Texture : public PointerHolder<SDL_Texture> {
         friend Renderer;
         Texture(SDL_Texture* t);
@@ -384,6 +388,7 @@ namespace sdlpp {
         Texture(Texture&& t);
     };
 
+    //! represent a GUI %window instance
     class Window : public PointerHolder<SDL_Window> {
         friend Handler;
         Window(SDL_Window* p);
@@ -404,6 +409,9 @@ namespace sdlpp {
     };
 
     struct Initializer;
+
+    //! through which can do misc jobs which rely on a successfully
+    //! initialization of SDL subsystems
     class Handler {
         friend Initializer;
     private:
@@ -422,7 +430,7 @@ namespace sdlpp {
                             WindowMode wm = WindowMode());
     };
 
-    //! initalize sdl subsytems
+    //! initalize sdl subsytems and return a useable Handler
     struct Initializer {
         struct InitFailure : error::RuntimeError { using error::RuntimeError::RuntimeError;};
         const std::uint32_t value;
