@@ -36,7 +36,6 @@
 #include <string>
 #include <iostream>
 #include <cstdint>
-#include <boost/utility.hpp>
 #include <memory>
 
 namespace sdlpp {
@@ -61,7 +60,12 @@ namespace sdlpp {
             RuntimeError(const std::string& m);
             RuntimeError();
         };
-#define THROW_SDLPP_RUNTIME_ERROR() (throw sdlpp::error::RuntimeError(std::string(basename((char*)__FILE__)) + ":" + std::to_string(__LINE__)))
+#ifdef _MSC_VER
+#define TO_NUMBER(s) ((_ULonglong)(s))
+#else
+#define TO_NUMBER(s) (s)
+#endif
+#define THROW_SDLPP_RUNTIME_ERROR() (throw sdlpp::error::RuntimeError(std::string(__FILE__) + ":" + std::to_string(TO_NUMBER(__LINE__))))
     }
 
     //! Event Processing
@@ -373,7 +377,10 @@ namespace sdlpp {
     public:
         Texture(Renderer& r, Surface& s);
         ~Texture();
+
+        //! alpha field is not used
         void setColorMod(const Color& color);
+        void setAlphaMod(std::uint8_t alpha);
         Texture(Texture&& t);
     };
 
@@ -741,7 +748,14 @@ namespace sdlpp {
         return Texture(tp);
     }
 
+    inline void Texture::setAlphaMod(std::uint8_t alpha) {
+        if (SDL_SetTextureAlphaMod(ptr, alpha) < 0) {
+            THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
+
 }
 
 #undef THROW_SDLPP_RUNTIME_ERROR
+#undef TO_NUMBER
 #endif
