@@ -214,6 +214,7 @@ namespace sdlpp {
         Rectangular(int wi, int hi,
                     const Position& pos = Position())
             : x(pos.x), y(pos.y), w(wi), h(hi) {}
+        Rectangular() {}
         int x;
         int y;
         int w;

@@ -35,17 +35,6 @@ int main (int argc, char *argv[])
     for (auto i = 0; i < SCREEN_HEIGHT; i += 4) {
         renderer.drawPoint(SCREEN_WIDTH / 2, i);
     }
-
-    EventData e;
-    while (event::wait(e), true) {
-        if (e.getType() == EventType::Quit) {
-            break;
-        } else if (e.getType() == EventType::Window) {
-            auto p = e.acquire<EventType::Window>();
-            if (p.getID() == SDL_WINDOWEVENT_EXPOSED) { // redraw
-                renderer.present();
-            }
-        }
-    }
+#   include"ewait.cpp"
     return 0;
 }

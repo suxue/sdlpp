@@ -6,7 +6,6 @@ using namespace sdlpp;
 using namespace std;
 using namespace sdlpp::event;
 
-
 int main (int argc, char *argv[])
 {
     auto path  = string(SDLPP_DEMO_DATA_DIR) + "background.png";
@@ -32,17 +31,6 @@ int main (int argc, char *argv[])
     renderer.copy(foo, nullptr, &destRect);
 
     renderer.present();
-
-    EventData e;
-    while (true) {
-        event::wait(e);
-        if (e.getType() == EventType::Quit) {
-            break;
-        } else if (e.getType() == EventType::Window) {
-            auto p = e.acquire<EventType::Window>();
-            if (p.getID() == SDL_WINDOWEVENT_EXPOSED) { // redraw
-                renderer.present();
-            }
-        }
-    }
+#   include"ewait.cpp"
+    return 0;
 }

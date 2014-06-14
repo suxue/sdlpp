@@ -6,3 +6,6 @@ target_link_libraries(basic_draw sdlpp)
 
 add_executable(color_key color_key.cpp)
 target_link_libraries(color_key sdlpp)
+
+add_executable(sprite sprite.cpp)
+target_link_libraries(sprite sdlpp)
