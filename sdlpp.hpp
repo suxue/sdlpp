@@ -115,6 +115,28 @@ namespace sdlpp {
             SDL_WindowEventID getID() const;
         };
 
+        //! keyboard event
+        template<>
+        class Event<EventType::Keyboard> : protected EventBase<SDL_KeyboardEvent> {
+            Event(PointType p) : EventBase(p) {}
+        public:
+            typedef Event type;
+            static const type extract(const SDL_Event* e);
+
+            //! @return true key is pressed
+            //! @return false key is released
+            bool pressed() const;
+
+            //! @return true is a key repeat
+            bool repeat() const;
+
+            //! physical key code
+            SDL_Scancode scancode() const;
+
+            //! SDL virtual key code
+            SDL_Keycode sym() const;
+        };
+
         class EventData;
 
         //! use this function to poll for currently pending events.
@@ -148,10 +170,10 @@ namespace sdlpp {
              * @return Event represent real event data
             */
             template<EventType::type t>
-            const Event<t> acquire();
+            const Event<t> acquire() const;
 
-            EventType::type getType();
-            Timestamp getTimeStamp();
+            EventType::type getType() const;
+            Timestamp getTimeStamp() const;
         protected:
            std::unique_ptr<SDL_Event> ptr; //!< delegate move semantics to unique_ptr
            static EventHandler create(SDL_Event*e);
@@ -458,7 +480,7 @@ namespace sdlpp {
         }
 
         template<EventType::type t>
-        const Event<t> EventHandler::acquire() {
+        const Event<t> EventHandler::acquire() const {
             if (ptr) {
                 return Event<t>::extract(ptr.get());
             } else {
@@ -466,18 +488,21 @@ namespace sdlpp {
             }
         }
 
-        inline EventType::type EventHandler::getType() {
+        inline EventType::type EventHandler::getType() const {
             switch (ptr->type) {
                 case SDL_WINDOWEVENT:
                     return EventType::Window;
                 case SDL_QUIT:
                     return EventType::Quit;
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                    return EventType::Keyboard;
                 default:
                     return EventType::Window;
             }
         }
 
-        inline Timestamp EventHandler::getTimeStamp() {
+        inline Timestamp EventHandler::getTimeStamp() const {
             if (ptr) {
                 return ptr->common.timestamp;
             } else {
@@ -493,9 +518,30 @@ namespace sdlpp {
             return (SDL_WindowEventID)ptr->event;
         }
 
+        inline bool Event<EventType::Keyboard>::pressed() const {
+            return ptr->state == SDL_PRESSED;
+        }
+
+        inline bool Event<EventType::Keyboard>::repeat() const {
+            return ptr->repeat != 0;
+        }
+
+        inline SDL_Scancode Event<EventType::Keyboard>::scancode() const {
+            return ptr->keysym.scancode;
+        }
+
+        inline SDL_Keycode Event<EventType::Keyboard>::sym() const {
+            return ptr->keysym.sym;
+        }
+
         inline const Event<EventType::Window>
         Event<EventType::Window>::extract(const SDL_Event* e) {
             return Event(&e->window);
+        }
+
+        inline const Event<EventType::Keyboard>
+        Event<EventType::Keyboard>::extract(const SDL_Event* e) {
+            return Event(&e->key);
         }
     }
 

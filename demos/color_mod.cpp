@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include <iostream>
 
 using namespace sdlpp;
 using namespace std;
@@ -35,10 +36,40 @@ int main(int argc, char *argv[])
     renderer.setTarget();
 
     // note, byte % 0xff = byte
-    canvas.setColorMod(Color(0xff, 128, 0xff));
+    Color mod(0xff, 128, 0xff);
+    canvas.setColorMod(mod);
     renderer.copy(canvas);
     renderer.present();
 
-    idlewait(renderer, window);
+    Callback callback = [&](const event::EventHandler& e) {
+        if (e.getType() == event::EventType::Keyboard) {
+            bool mod_changed = true;
+            auto p = e.acquire<event::EventType::Keyboard>();
+            switch (p.sym()) {
+            case SDLK_q:
+                mod.red += 32; break;
+            case SDLK_w:
+                mod.green += 32; break;
+            case SDLK_e:
+                mod.blue += 32; break;
+            case SDLK_a:
+                mod.red -= 32; break;
+            case SDLK_s:
+                mod.green -= 32; break;
+            case SDLK_d:
+                mod.blue -= 32; break;
+            default:
+                mod_changed = false;
+                break;
+            }
+            if (mod_changed) {
+                canvas.setColorMod(mod);
+                renderer.copy(canvas);
+                renderer.present();
+            }
+        }
+    };
+
+    idlewait(renderer, window, callback);
     return 0;
 }

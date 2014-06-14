@@ -7,11 +7,12 @@ using namespace std;
 
 bool maxmin = false;
 
-void idlewait(Renderer& renderer, Window& window)
+void idlewait(Renderer& renderer, Window& window, Callback cb)
 {
     EventData e;
     while (true) {
         event::wait(e);
+        cb(e);
         if (e.getType() == EventType::Quit) {
             break;
         } else if (e.getType() == EventType::Window) {
@@ -34,3 +35,6 @@ void idlewait(Renderer& renderer, Window& window)
         }
     }
 }
+
+
+void default_callback(const sdlpp::event::EventHandler& e) {}

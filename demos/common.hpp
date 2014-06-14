@@ -3,6 +3,12 @@
 
 #include"sdlpp.hpp"
 #include "config.h"
-void idlewait(sdlpp::Renderer& renderer, sdlpp::Window& window);
+#include <functional>
+
+typedef std::function<void(const sdlpp::event::EventHandler& e)> Callback;
+extern void default_callback(const sdlpp::event::EventHandler& e);
+
+void idlewait(sdlpp::Renderer& renderer, sdlpp::Window& window,
+        Callback cb = default_callback);
 
 #endif
