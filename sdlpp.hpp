@@ -204,12 +204,20 @@ namespace sdlpp {
         };
     } // end namespace event
 
+    struct BlendMode {
+        enum type {
+            None = SDL_BLENDMODE_NONE,
+            Blend = SDL_BLENDMODE_BLEND,
+            Add = SDL_BLENDMODE_ADD,
+            Mod = SDL_BLENDMODE_MOD
+        };
+    };
+
     //! a position/point represented by pair of x and y coordinate
-    struct Position {
-        int x;
-        int y;
+    struct Position : public SDL_Point {
         Position(int xi = SDL_WINDOWPOS_UNDEFINED,
-                       int yi = SDL_WINDOWPOS_UNDEFINED) : x(xi), y(yi) {}
+                       int yi = SDL_WINDOWPOS_UNDEFINED)
+             {x = xi; y =  yi;}
         Position& setCentered(bool setx, bool sety) {
             if (setx) x = SDL_WINDOWPOS_CENTERED;
             if (sety) y = SDL_WINDOWPOS_CENTERED;
@@ -238,16 +246,15 @@ namespace sdlpp {
     };
 
     //! a quadruple structure, x, y coordinate, weight and height
-    struct Rectangular {
+    struct Rectangular : public SDL_Rect {
         Rectangular(int wi, int hi,
-                    const Position& pos = Position())
-            : x(pos.x), y(pos.y), w(wi), h(hi) {}
+                    const Position& pos = Position()) {
+            x = pos.x;
+            y = pos.y;
+            w = wi;
+            h = hi;
+        }
         Rectangular() {}
-        int x;
-        int y;
-        int w;
-        int h;
-        SDL_Rect *toSdlRect() const { return (SDL_Rect*)this; }
     };
 
     typedef std::uint32_t PixelFormat;
@@ -286,6 +293,8 @@ namespace sdlpp {
         friend Window;
         Renderer(SDL_Renderer* p);
     public:
+        static SDL_RendererFlip horizontalFlip();
+        static SDL_RendererFlip verticalFlip();
         ~Renderer();
         Renderer(Renderer&& r);
         //! clear the current rendering target with the drawing color
@@ -297,6 +306,12 @@ namespace sdlpp {
          */
         void copy(Texture& texture, const Rectangular* srcrect = nullptr,
                 const Rectangular* destrect = nullptr);
+
+        void copy(Texture& texture, const double angle,
+                const Rectangular* srcrect = nullptr,
+                const Rectangular* destrect = nullptr,
+                const Position* center = nullptr,
+                SDL_RendererFlip flip = SDL_FLIP_NONE);
 
         //! update the screen with rendering performed
         void present();
@@ -356,8 +371,8 @@ namespace sdlpp {
         void blit(const Surface& src,
                   const Rectangular* srcrect = nullptr,
                   const Position* destpos = nullptr);
-        void blitScaled(const Surface& src, const Rectangular* srcrect = nullptr,
-                  const Rectangular* destrect = nullptr);
+        void blitScaled(const Surface& src, Rectangular* srcrect = nullptr,
+                  Rectangular* destrect = nullptr);
         SDL_PixelFormat *getFormat();
         int getWidth();
         int getHeight();
@@ -380,11 +395,13 @@ namespace sdlpp {
         Texture(SDL_Texture* t);
     public:
         Texture(Renderer& r, Surface& s);
+        Texture(Renderer& r, Surface&& s);
         ~Texture();
 
         //! alpha field is not used
         void setColorMod(const Color& color);
         void setAlphaMod(std::uint8_t alpha);
+        void setBlendMode(BlendMode::type m);
         Texture(Texture&& t);
     };
 
@@ -620,6 +637,12 @@ namespace sdlpp {
         if (!ptr) { THROW_SDLPP_RUNTIME_ERROR(); }
     }
 
+    inline Texture::Texture(Renderer& r, Surface&& s) : 
+        PointerHolder(SDL_CreateTextureFromSurface(r.get(), s.get()))
+    {
+        if (!ptr) { THROW_SDLPP_RUNTIME_ERROR(); }
+    }
+
     inline Texture::~Texture() { SDL_DestroyTexture(ptr); }
     inline Window::Window(SDL_Window* p) : PointerHolder(p) {}
     inline Window::Window(Window&& w) : PointerHolder((PointerHolder&&)w) {}
@@ -661,7 +684,7 @@ namespace sdlpp {
     }
 
     inline void Renderer::fillRect(const Rectangular* rect) {
-        if (SDL_RenderFillRect(ptr, rect ? rect->toSdlRect() : nullptr) < 0) {
+        if (SDL_RenderFillRect(ptr, rect) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
     }
@@ -762,6 +785,30 @@ namespace sdlpp {
         }
     }
 
+    inline void Texture::setBlendMode(BlendMode::type m) {
+        if (SDL_SetTextureBlendMode(ptr, (SDL_BlendMode)m) < 0) {
+            THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
+
+    inline SDL_RendererFlip Renderer::horizontalFlip() {
+        return SDL_FLIP_HORIZONTAL;
+    }
+
+    inline SDL_RendererFlip Renderer::verticalFlip() {
+        return SDL_FLIP_VERTICAL;
+    }
+
+    inline void Renderer::copy(Texture& texture, const double angle,
+            const Rectangular* srcrect,
+            const Rectangular* destrect,
+            const Position* center,
+            SDL_RendererFlip flip) {
+        if (SDL_RenderCopyEx(ptr, texture.get(), srcrect, destrect, angle,
+                    center, flip) < 0) {
+           THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
 }
 
 #undef THROW_SDLPP_RUNTIME_ERROR

@@ -19,3 +19,7 @@ target_link_libraries(sprite demos_common)
 add_executable(color_mod color_mod.cpp)
 target_link_libraries(color_mod sdlpp)
 target_link_libraries(color_mod demos_common)
+
+add_executable(flip flip.cpp)
+target_link_libraries(flip sdlpp)
+target_link_libraries(flip demos_common)

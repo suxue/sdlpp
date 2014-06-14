@@ -61,21 +61,17 @@ Surface::blit(const Surface& src,
         tmp.y = destpos->y;
     }
 
-    if (SDL_BlitSurface(src.ptr,
-            srcrect == nullptr ? nullptr : srcrect->toSdlRect(),
-            ptr, destpos == nullptr ? nullptr : &tmp) != 0) {
+    if (SDL_BlitSurface(src.ptr, srcrect, ptr,
+                destpos == nullptr ? nullptr : &tmp) != 0) {
         throw BlitFailure();
     }
 }
 
 void
-Surface::blitScaled(const Surface& src, const Rectangular* srcrect,
-                    const Rectangular* destrect)
+Surface::blitScaled(const Surface& src, Rectangular* srcrect,
+                    Rectangular* destrect)
 {
-    if (SDL_BlitScaled(
-                src.ptr, srcrect == nullptr ? nullptr : srcrect->toSdlRect(),
-                ptr, destrect == nullptr ? nullptr : destrect->toSdlRect())
-            != 0) {
+    if (SDL_BlitScaled( src.ptr, srcrect, ptr, destrect) != 0) {
         throw BlitFailure();
     }
 }
@@ -83,9 +79,7 @@ Surface::blitScaled(const Surface& src, const Rectangular* srcrect,
 void
 Renderer::copy(Texture& texture, const Rectangular* src, const Rectangular* dest)
 {
-    if (SDL_RenderCopy(ptr, texture.get(),
-                src == nullptr ? nullptr : src->toSdlRect(),
-                dest == nullptr ? nullptr : dest->toSdlRect())) {
+    if (SDL_RenderCopy(ptr, texture.get(), src, dest)) {
         throw error::RuntimeError();
     }
 }
