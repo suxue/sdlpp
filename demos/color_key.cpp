@@ -1,5 +1,4 @@
-#include "sdlpp.hpp"
-#include "config.h"
+#include "common.hpp"
 #include <iostream>
 
 using namespace sdlpp;
@@ -31,6 +30,6 @@ int main (int argc, char *argv[])
     renderer.copy(foo, nullptr, &destRect);
 
     renderer.present();
-#   include"ewait.cpp"
+    idlewait(renderer);
     return 0;
 }

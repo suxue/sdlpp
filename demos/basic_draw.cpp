@@ -1,5 +1,4 @@
-#include "sdlpp.hpp"
-#include "config.h"
+#include "common.hpp"
 #include <iostream>
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -35,6 +34,6 @@ int main (int argc, char *argv[])
     for (auto i = 0; i < SCREEN_HEIGHT; i += 4) {
         renderer.drawPoint(SCREEN_WIDTH / 2, i);
     }
-#   include"ewait.cpp"
+    idlewait(renderer);
     return 0;
 }

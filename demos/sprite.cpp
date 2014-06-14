@@ -1,5 +1,4 @@
-#include "sdlpp.hpp"
-#include "config.h"
+#include "common.hpp"
 #include <string>
 
 using namespace sdlpp;
@@ -51,7 +50,6 @@ int main(int argc, char *argv[])
     }
     renderer.present();
 
-
-#   include"ewait.cpp"
+    idlewait(renderer);
     return 0;
 }

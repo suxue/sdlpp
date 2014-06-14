@@ -1,5 +1,4 @@
-#include "sdlpp.hpp"
-#include "config.h"
+#include "common.hpp"
 #include <string>
 #include <iostream>
 
@@ -32,6 +31,6 @@ main
 
     // dest.blitScaled(srcopt);
     // window.update();
-#include "ewait.cpp"
+    idlewait(renderer);
     return 0;
 }
