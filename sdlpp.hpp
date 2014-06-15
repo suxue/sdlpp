@@ -1,9 +1,8 @@
 /*!
- * @file
  * @section LICENSE
- * The MIT License (MIT)
- *
  * Copyright (c) 2014 Hao Fei <mrfeihao@gmail.com>
+ *
+ * This file is part of libsdlpp.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,14 +23,17 @@
  * THE SOFTWARE.
  *
  * @section DESCRIPTION
- * sdlpp is an incomplete c++ wrapper for SDL2
+ * sdlpp is an incomplete c++ wrapper for SDL2.
  */
 
 #ifndef SDLPP_HPP
 #define SDLPP_HPP
 
-#include "sdlpp_csdl.hpp"
-#include "../util/list.hpp"
+extern "C" {
+#include <SDL.h>
+#include <SDL_image.h>
+}
+//#include "../util/list.hpp"
 #include <stdexcept>
 #include <string>
 #include <iostream>
@@ -287,17 +289,23 @@ namespace sdlpp {
 
     class Window;
     class Texture;
+    class TargetTexture;
+    class StaticTexture;
+    class StreamingTexture;
 
     //! A Renderer always associsated with a Window
     class Renderer : public PointerHolder<SDL_Renderer> {
         friend Window;
         Renderer(SDL_Renderer* p);
+        template<typename T>
+        T createTexture(PixelFormat format, SDL_TextureAccess access, int width, int height);
     public:
         static SDL_RendererFlip horizontalFlip();
         static SDL_RendererFlip verticalFlip();
         ~Renderer();
         Renderer(Renderer&& r);
-        //! clear the current rendering target with the drawing color
+
+        //! clear(fill) the current rendering target with the drawing color
         void clear();
 
         /*!
@@ -307,6 +315,14 @@ namespace sdlpp {
         void copy(Texture& texture, const Rectangular* srcrect = nullptr,
                 const Rectangular* destrect = nullptr);
 
+        /*!
+         * @brief copy a portion of the texture to the current rendering
+         *        target, optionally rotating it by angle around the given
+         *        center and also flipping it top-bottom and/or left-right
+         * @param angle an angle in degrees that indicates the rotation
+         *              that will be applied to dstrect
+         * @param flip horizontalFlip(), verticalFlip() or default(no * flip)
+         */
         void copy(Texture& texture, const double angle,
                 const Rectangular* srcrect = nullptr,
                 const Rectangular* destrect = nullptr,
@@ -316,29 +332,35 @@ namespace sdlpp {
         //! update the screen with rendering performed
         void present();
 
-        //!set a texture as the current rendering target.
+        //! set a texture as the current rendering target.
         //! @warning avoid dangling pointer
-        void setTarget(Texture* texture);
-
-        //! restore default target
-        void setTarget();
+        //! @param texture pass nullptr to restore default target
+        void setTarget(TargetTexture* texture = nullptr);
 
         //! set the color used for drawing operations (Rect, Line and
         //! Clear)
         void setDrawColor(const Color& color);
 
-        // fill rectangular with current color
-        void fillRect(const Rectangular* rect);
+        //! fill rectangular with current color
         void fillRect(const Rectangular& rect);
+
+        //! draw a line on the current rendering target (x1, y1) -> (x2, y2)
         void drawLine(int x1, int y1, int x2, int y2);
+
+        //! draw a point on the current rendering target (x, y)
         void drawPoint(int x, int y);
 
-        Texture createTexture(PixelFormat format, SDL_TextureAccess access, int width, int height);
-        Texture createStaticTexture(int width, int height,
+        //! create a static texture associated with current renderer
+        StaticTexture spawnStatic(int width, int height,
                 PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
-        Texture createStreamingTexture(int width, int height,
+
+        //! create a streaming texture associated with current renderer
+        StreamingTexture spawnStreaming(int width, int height,
                 PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
-        Texture createTargetTexture(int width, int height,
+
+        //! create a target texture
+        //! @see setTarget()
+        TargetTexture spawnTarget(int width, int height,
                 PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
     };
 
@@ -349,7 +371,7 @@ namespace sdlpp {
         bool needDeallocate;
 
         /*!
-         * @parma managed true when no need to call SDL_DestroySurface
+         * @param managed true when no need to call SDL_DestroySurface in dtor
          */
         Surface(SDL_Surface *p, bool managed = false);
     public:
@@ -392,6 +414,7 @@ namespace sdlpp {
     /*! like a Surface but is optimized for GPU renderin */
     class Texture : public PointerHolder<SDL_Texture> {
         friend Renderer;
+    protected:
         Texture(SDL_Texture* t);
     public:
         Texture(Renderer& r, Surface& s);
@@ -403,6 +426,24 @@ namespace sdlpp {
         void setAlphaMod(std::uint8_t alpha);
         void setBlendMode(BlendMode::type m);
         Texture(Texture&& t);
+    };
+
+    //! TargetTexture acted as a destination of rendering
+    class TargetTexture : public Texture {
+        friend Renderer;
+        TargetTexture(SDL_Texture* t);
+    };
+
+    //! not subjective to changes, mostly used as source texture
+    class StaticTexture : public Texture {
+        friend Renderer;
+        StaticTexture(SDL_Texture* t);
+    };
+
+    //! subjective to byte oriented changes in pixel level.
+    class StreamingTexture : public Texture {
+        friend Renderer;
+        StreamingTexture(SDL_Texture* t);
     };
 
     //! represent a GUI %window instance
@@ -438,9 +479,9 @@ namespace sdlpp {
 
         //! create a window
         /*!
-         * @parma title the title of the window, in UTF-8 encoding
-         * @parma rect position and height, width of window
-         * @parma wm window properties
+         * @param title the title of the window, in UTF-8 encoding
+         * @param rect position and height, width of window
+         * @param wm window properties
          */
         Window createWindow(const std::string& title,
                             const Rectangular& rect,
@@ -637,7 +678,7 @@ namespace sdlpp {
         if (!ptr) { THROW_SDLPP_RUNTIME_ERROR(); }
     }
 
-    inline Texture::Texture(Renderer& r, Surface&& s) : 
+    inline Texture::Texture(Renderer& r, Surface&& s) :
         PointerHolder(SDL_CreateTextureFromSurface(r.get(), s.get()))
     {
         if (!ptr) { THROW_SDLPP_RUNTIME_ERROR(); }
@@ -683,14 +724,10 @@ namespace sdlpp {
         }
     }
 
-    inline void Renderer::fillRect(const Rectangular* rect) {
-        if (SDL_RenderFillRect(ptr, rect) < 0) {
+    inline void Renderer::fillRect(const Rectangular& rect) {
+        if (SDL_RenderFillRect(ptr, &rect) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
-    }
-
-    inline void Renderer::fillRect(const Rectangular& rect) {
-        fillRect(&rect);
     }
 
     inline void Renderer::drawLine(int x1, int y1, int x2, int y2) {
@@ -742,41 +779,36 @@ namespace sdlpp {
     inline void Window::restore() { SDL_RestoreWindow(ptr); }
     inline Texture::Texture(SDL_Texture* t) : PointerHolder(t) {}
 
-    inline void Renderer::setTarget(Texture* texture) {
-        if (SDL_SetRenderTarget(ptr, texture->get()) <0) {
+    inline void Renderer::setTarget(TargetTexture* texture) {
+        if (SDL_SetRenderTarget(ptr, texture ? texture->get() : nullptr) <0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
-    inline void Renderer::setTarget() {
-        if (SDL_SetRenderTarget(ptr, nullptr) < 0) {
-            THROW_SDLPP_RUNTIME_ERROR();
-        }
-    }
-
-    inline Texture Renderer::createStaticTexture(int width, int height,
+    inline StaticTexture Renderer::spawnStatic(int width, int height,
                                                  PixelFormat format) {
-        return createTexture(format, SDL_TEXTUREACCESS_STATIC,
+        return createTexture<StaticTexture>(format, SDL_TEXTUREACCESS_STATIC,
                 width, height);
     }
 
-    inline Texture Renderer::createStreamingTexture(
+    inline StreamingTexture Renderer::spawnStreaming(
             int width, int height, PixelFormat format) {
-        return createTexture(format, SDL_TEXTUREACCESS_STREAMING,
+        return createTexture<StreamingTexture>(format, SDL_TEXTUREACCESS_STREAMING,
                 width, height);
     }
 
-    inline Texture Renderer::createTargetTexture(
+    inline TargetTexture Renderer::spawnTarget(
             int width, int height, PixelFormat format) {
-        return createTexture(format, SDL_TEXTUREACCESS_TARGET,
+        return createTexture<TargetTexture>(format, SDL_TEXTUREACCESS_TARGET,
                 width, height);
     }
 
-    inline Texture Renderer::createTexture(PixelFormat format,
+    template<typename T>
+    inline T Renderer::createTexture(PixelFormat format,
             SDL_TextureAccess access, int width, int height) {
         auto tp = SDL_CreateTexture(ptr, format, access, width, height);
         if (!tp) { THROW_SDLPP_RUNTIME_ERROR(); }
-        return Texture(tp);
+        return T(tp);
     }
 
     inline void Texture::setAlphaMod(std::uint8_t alpha) {
@@ -809,6 +841,10 @@ namespace sdlpp {
            THROW_SDLPP_RUNTIME_ERROR();
         }
     }
+
+    inline TargetTexture::TargetTexture(SDL_Texture*p) : Texture(p) {}
+    inline StaticTexture::StaticTexture(SDL_Texture*p) : Texture(p) {}
+    inline StreamingTexture::StreamingTexture(SDL_Texture*p) : Texture(p) {}
 }
 
 #undef THROW_SDLPP_RUNTIME_ERROR
