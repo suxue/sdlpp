@@ -130,7 +130,7 @@ namespace event {
         SDL_WaitEvent(eh.ptr.get());
     }
 
-    EventHandler EventData::dump()
+    EventHandler EventData::slice()
     {
         size_t size;
         switch (ptr->type) {

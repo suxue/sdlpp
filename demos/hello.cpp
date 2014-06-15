@@ -39,8 +39,8 @@ main
     auto path  = string(SDLPP_DEMO_DATA_DIR) + "hello.jpg";
     cout << path << endl;
     auto src = Surface::loadIMG(path);
-    int height = src.getHeight();
-    int width = src.getWidth();
+    int height = src.height();
+    int width = src.width();
 
 
     Handler sdl = Initializer().acquire();

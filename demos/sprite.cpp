@@ -47,8 +47,8 @@ int main(int argc, char *argv[])
     spriteSuf.setColorKey(cyan);
 
     Texture sprite(renderer, spriteSuf);
-    auto height = spriteSuf.getHeight();
-    auto width = spriteSuf.getWidth();
+    auto height = spriteSuf.height();
+    auto width = spriteSuf.width();
     auto sh = height/2;
     auto sw = width/2;
 

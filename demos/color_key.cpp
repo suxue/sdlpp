@@ -34,8 +34,8 @@ int main (int argc, char *argv[])
 {
     auto path  = string(SDLPP_DEMO_DATA_DIR) + "background.png";
     auto backgroundSuf = Surface::loadIMG(path);
-    int height = backgroundSuf.getHeight();
-    int width = backgroundSuf.getWidth();
+    int height = backgroundSuf.height();
+    int width = backgroundSuf.width();
 
     auto sdl = Initializer().acquire();
     auto window = sdl.createWindow("sdlpp_demo",
@@ -50,7 +50,7 @@ int main (int argc, char *argv[])
     Color cyan = Color(0, 0xff, 0xff);
     fooSuf.setColorKey(cyan);
     Texture foo(renderer, fooSuf);
-    Rectangular destRect(fooSuf.getWidth(), fooSuf.getHeight(),
+    Rectangular destRect(fooSuf.width(), fooSuf.height(),
             Position(width/2, height/2));
     renderer.copy(foo, nullptr, &destRect);
 

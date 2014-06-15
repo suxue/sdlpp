@@ -38,9 +38,9 @@ void idlewait(Renderer& renderer, Window& window, Callback cb)
     while (true) {
         event::wait(e);
         cb(e);
-        if (e.getType() == EventType::Quit) {
+        if (e.type() == EventType::Quit) {
             break;
-        } else if (e.getType() == EventType::Window) {
+        } else if (e.type() == EventType::Window) {
             auto p = e.acquire<EventType::Window>();
             switch (p.getID()) {
                 case SDL_WINDOWEVENT_EXPOSED:

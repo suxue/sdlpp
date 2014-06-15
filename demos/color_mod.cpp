@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     renderer.present();
 
     Callback callback = [&](const event::EventHandler& e) {
-        if (e.getType() == event::EventType::Keyboard) {
+        if (e.type() == event::EventType::Keyboard) {
             bool mod_changed = true;
             auto p = e.acquire<event::EventType::Keyboard>();
             if (p.pressed()) {

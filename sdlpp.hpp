@@ -38,7 +38,9 @@ extern "C" {
 #include <string>
 #include <iostream>
 #include <cstdint>
+#include <cstddef>
 #include <memory>
+#include <type_traits>
 
 namespace sdlpp {
 
@@ -171,23 +173,27 @@ namespace sdlpp {
             EventHandler(EventHandler&& e);
             EventHandler& operator=(EventHandler&& e);
 
-            /*! should be call by the actuall type got through getType()
-             * @warning dangerous, implicit pointer type reinterpretation
+            /*! should be call by the actuall type got through type()
+             * @warning dangerous, implicit pointer type reinterpretation,
+             *          make sure use the correct EventType given by
+             *          type()
              * @return Event represent real event data
             */
             template<EventType::type t>
             const Event<t> acquire() const;
 
-            EventType::type getType() const;
-            Timestamp getTimeStamp() const;
+            EventType::type type() const;
+            Timestamp timestamp() const;
         protected:
            std::unique_ptr<SDL_Event> ptr; //!< delegate move semantics to unique_ptr
            static EventHandler create(SDL_Event*e);
         private:
            EventHandler(SDL_Event*e) : ptr(e) {};
 
-           // deleted copy ctor and assignment
+           // deleted copy ctor
            EventHandler(const EventHandler& e);
+
+           // deleted copy assignment operator
            EventHandler& operator=(const EventHandler& e);
         };
 
@@ -201,8 +207,11 @@ namespace sdlpp {
             friend void wait(EventData& eh);
            void initptr();
         public:
-            // compact memory
-            EventHandler dump();
+            /*! copy EventData to a EventHandler for storing or passing around.
+             *  a EventHandler only stores relavent part in the SDL_Event
+             *  union, hence uses less memory than original EventData.
+             */
+            EventHandler slice();
         };
     } // end namespace event
 
@@ -259,7 +268,8 @@ namespace sdlpp {
         Rectangular() {}
     };
 
-    typedef std::uint32_t PixelFormat;
+    typedef decltype(SDL_PIXELFORMAT_ARGB8888) PixelFormat;
+    const PixelFormat DEFAULT_PIXEL_FORMAT= SDL_PIXELFORMAT_ARGB8888;
 
     //! general template base class for hold a c pointer
     template<typename T>
@@ -277,6 +287,8 @@ namespace sdlpp {
         PointerHolder& operator=(const PointerHolder&);
     };
 
+    typedef std::uint32_t PixelValue;
+
     //! structure represents color by RGB and alpha value
     struct Color {
         Color(std::uint8_t r, std::uint8_t g,
@@ -285,6 +297,7 @@ namespace sdlpp {
         std::uint8_t green;
         std::uint8_t blue;
         std::uint8_t alpha;
+        PixelValue genPixel(SDL_PixelFormat *format);
     };
 
     class Window;
@@ -306,6 +319,7 @@ namespace sdlpp {
         Renderer(Renderer&& r);
 
         //! clear(fill) the current rendering target with the drawing color
+        //! wipes out the existing video framebuffer
         void clear();
 
         /*!
@@ -352,16 +366,54 @@ namespace sdlpp {
 
         //! create a static texture associated with current renderer
         StaticTexture spawnStatic(int width, int height,
-                PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
+                PixelFormat format = DEFAULT_PIXEL_FORMAT);
 
         //! create a streaming texture associated with current renderer
         StreamingTexture spawnStreaming(int width, int height,
-                PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
+                PixelFormat format = DEFAULT_PIXEL_FORMAT);
 
         //! create a target texture
         //! @see setTarget()
         TargetTexture spawnTarget(int width, int height,
-                PixelFormat format = SDL_PIXELFORMAT_UNKNOWN);
+                PixelFormat format = DEFAULT_PIXEL_FORMAT);
+    };
+
+    //! describe the memory layout which depneds on the endianess of hardware
+    /*!
+     * for example RGBA8888 denotes Red, Green, Blue and Alpha will be
+     * represented by a uint8_t[4] array, with the specified order or
+     * mask.
+    */
+    struct PixelMask {
+         int bpp;      //!< bit-length per pixel
+         std::uint32_t rmask;
+         std::uint32_t gmask;
+         std::uint32_t bmask;
+         std::uint32_t amask;
+    public:
+         PixelMask(PixelFormat format = DEFAULT_PIXEL_FORMAT);
+    };
+
+
+    class Surface;
+
+    //! current only support 4 byte width pixel
+    class Pixel {
+        friend Surface;
+        PixelValue *data;
+        const SDL_PixelFormat *format;
+        Pixel(PixelValue *d, const SDL_PixelFormat* f);
+        template<typename T> Pixel& offset(T len);
+    public:
+        template<typename T> Pixel &operator+=(T offset);
+        template<typename T> Pixel &operator-=(T offset);
+        Pixel &operator++();
+        Pixel &operator--();
+        bool operator==(Pixel p);
+        bool operator!=(Pixel p);
+        operator PixelValue();
+        operator Color();
+        Pixel& operator=(PixelValue v);
     };
 
     //! a collection of pixels used in software blitting
@@ -377,6 +429,10 @@ namespace sdlpp {
     public:
         ~Surface();
         Surface(Surface&& s);
+
+        //! Constructor that build a empty surface with given format
+        Surface(int width, int height, PixelFormat format = DEFAULT_PIXEL_FORMAT);
+        Surface(int width, int height, const PixelMask& mask);
         static Surface loadBMP(const std::string& path);
 
         //! load image through SDL2_image extension library
@@ -395,9 +451,12 @@ namespace sdlpp {
                   const Position* destpos = nullptr);
         void blitScaled(const Surface& src, Rectangular* srcrect = nullptr,
                   Rectangular* destrect = nullptr);
-        SDL_PixelFormat *getFormat();
-        int getWidth();
-        int getHeight();
+
+        const SDL_PixelFormat *getFormat() const;
+        const PixelFormat format() const;
+
+        int width() const;
+        int height() const;
 
         //! set the color key (transparent pixel) in a surface
         void setColorKey(const Color& c);
@@ -405,9 +464,11 @@ namespace sdlpp {
         //! clear the color key (transparent pixel) in a surface
         void unsetColorKey(const Color& c);
 
+        Pixel pixels();
+
         //! copy an existing surface into a new one that is optimized for
         //! blitting to a surface of a specified pixel format
-        Surface convert(SDL_PixelFormat *format);
+        Surface convert(const SDL_PixelFormat *format);
     };
 
     //! small object which is moveable and repsent a canvas
@@ -561,7 +622,7 @@ namespace sdlpp {
             }
         }
 
-        inline EventType::type EventHandler::getType() const {
+        inline EventType::type EventHandler::type() const {
             switch (ptr->type) {
                 case SDL_WINDOWEVENT:
                     return EventType::Window;
@@ -575,7 +636,7 @@ namespace sdlpp {
             }
         }
 
-        inline Timestamp EventHandler::getTimeStamp() const {
+        inline Timestamp EventHandler::timestamp() const {
             if (ptr) {
                 return ptr->common.timestamp;
             } else {
@@ -664,9 +725,10 @@ namespace sdlpp {
     inline Surface::~Surface() { if (needDeallocate) { SDL_FreeSurface(ptr); } }
     inline Surface::Surface(Surface&& s): PointerHolder((PointerHolder&&)s),
                                  needDeallocate(s.needDeallocate) {}
-    inline SDL_PixelFormat *Surface::getFormat() { return ptr->format; }
-    inline Surface Surface::convert(SDL_PixelFormat *format) {
-        SDL_Surface *newsuf = SDL_ConvertSurface(ptr, format, 0);
+    inline const SDL_PixelFormat *Surface::getFormat() const { return ptr->format; }
+    inline Surface Surface::convert(const SDL_PixelFormat *format) {
+        SDL_Surface *newsuf = SDL_ConvertSurface(ptr,
+                const_cast<SDL_PixelFormat*>(format), 0);
         if (!newsuf) throw ConvertFailure();
         return Surface(newsuf);
     }
@@ -742,11 +804,11 @@ namespace sdlpp {
         }
     }
 
-    inline int Surface::getWidth() {
+    inline int Surface::width() const {
         return ptr->w;
     }
 
-    inline int Surface::getHeight() {
+    inline int Surface::height() const {
         return ptr->h;
     }
 
@@ -845,6 +907,70 @@ namespace sdlpp {
     inline TargetTexture::TargetTexture(SDL_Texture*p) : Texture(p) {}
     inline StaticTexture::StaticTexture(SDL_Texture*p) : Texture(p) {}
     inline StreamingTexture::StreamingTexture(SDL_Texture*p) : Texture(p) {}
+
+    inline PixelMask::PixelMask(PixelFormat format) {
+        if (SDL_FALSE == SDL_PixelFormatEnumToMasks(format,
+                    &bpp, &rmask, &gmask, &bmask, &amask)) {
+            THROW_SDLPP_RUNTIME_ERROR();
+        }
+    }
+
+    inline Surface::Surface(int width, int height, PixelFormat format)
+        : PointerHolder(nullptr), needDeallocate(true) {
+        PixelMask mask(format);
+        auto s = SDL_CreateRGBSurface(0, width, height, mask.bpp,
+                mask.rmask, mask.gmask, mask.bmask, mask.amask);
+        if (!s) { THROW_SDLPP_RUNTIME_ERROR(); }
+        ptr = s;
+    }
+
+    inline Surface::Surface(int width, int height, const PixelMask& mask)
+        : PointerHolder(nullptr), needDeallocate(true) {
+        auto s = SDL_CreateRGBSurface(0, width, height, mask.bpp,
+                mask.rmask, mask.gmask, mask.bmask, mask.amask);
+        if (!s) { THROW_SDLPP_RUNTIME_ERROR(); }
+        ptr = s;
+    }
+
+    inline const PixelFormat Surface::format() const {
+        return (PixelFormat)getFormat()->format;
+    }
+
+    inline Pixel::Pixel(PixelValue *d, const SDL_PixelFormat* f)
+        : data(d), format(f) {
+        if (format->BytesPerPixel != 4) {
+            throw error::RuntimeError("color depth is not 32");
+        }
+    }
+
+    template<typename T>
+    inline Pixel& Pixel::offset(T len) {
+        static_assert(std::is_integral<T>::value, "T is not integral type");
+        data += len;
+        return *this;
+    }
+
+    template<typename T> Pixel& Pixel::operator+=(T o) { return offset(o); }
+    template<typename T> Pixel& Pixel::operator-=(T o) { return offset(-o); }
+    inline Pixel& Pixel::operator++() { return offset(1); }
+    inline Pixel& Pixel::operator--() { return offset(-1); }
+    inline bool Pixel::operator==(Pixel p) { return data == p.data; }
+    inline bool Pixel::operator!=(Pixel p) { return data != p.data; }
+    inline Pixel::operator PixelValue() { return *data;}
+    inline Pixel& Pixel::operator=(PixelValue v) { *data = v; return *this;}
+    inline Pixel::operator Color() {
+        auto d = *data;
+        return Color(d & format->Rmask, d & format->Gmask,
+                     d & format->Bmask, d & format->Amask);
+    }
+
+    inline PixelValue Color::genPixel(SDL_PixelFormat *format) {
+        return SDL_MapRGBA(format, red, green, blue, alpha);
+    }
+
+    inline Pixel Surface::pixels() {
+        return Pixel((PixelValue*)ptr->pixels, ptr->format);
+    }
 }
 
 #undef THROW_SDLPP_RUNTIME_ERROR
