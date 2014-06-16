@@ -48,22 +48,22 @@ int main(int argc, char *argv[])
     Bpp4Surface canvas(10, 10, format);
     for (auto j = 0; j < 10; j++) {
         for (auto i = 0; i < 10; i++) {
-            canvas[i][j] = green;
+            canvas[i][j] = white;
         }
     }
 
-    canvas.line(Position(9, 0), Position(0, 6), red);
+    canvas.line(Position(9, 0), Position(0, 6), green);
 
     /*
      * rendering pixel boundaries
      */
     Bpp4Surface network(dest.width(), dest.height(), format);
     for (auto i = 0; i < 600; i+=60) {
-        network.line(Position(0, i), Position(599, i), white);
-        network.line(Position(i, 0), Position(i, 599), white);
+        network.line(Position(0, i), Position(599, i), blue);
+        network.line(Position(i, 0), Position(i, 599), blue);
     }
 
-    network.line(Position(599, 0), Position(0, 419), blue);
+    network.line(Position(599, 0), Position(0, 419), red);
 
     dest.blitScaled(canvas);
     dest.blit(network);
