@@ -34,24 +34,39 @@ int main(int argc, char *argv[])
 {
     auto sdl = Initializer().video().events().acquire();
     auto window = sdl.createWindow("software rendering",
-            Rectangular(800, 600));
+            Rectangular(600, 600));
     Surface dest(window.getSurface());
-    Surface src(Surface::loadIMG(string(SDLPP_DEMO_DATA_DIR) + "arrow.png"));
+    Color white(0xff, 0xff, 0xff);
+    Color red(0xff, 0, 0);
+    Color green(0, 0xff, 0);
+    Color blue(0, 0, 0xff);
 
+    /*
+     * rendering pixels
+     */
     PixelFormat format = SDL_PIXELFORMAT_ARGB8888;
-    Bpp4Surface canvas(200, 100, format);
-    PixelValue value = Color(0, 0x1f, 0xff).mapRGB(canvas.getFormat());
-    cout << Color(value, canvas.getFormat()) << endl;
-    cout << value << endl;
-    for (auto j = 0; j < 100; j++) {
-        for (auto i = 0; i < 200; i++) {
-            //canvas.setPixel(i, j, value);
-            canvas[i][j] = value;
+    Bpp4Surface canvas(10, 10, format);
+    for (auto j = 0; j < 10; j++) {
+        for (auto i = 0; i < 10; i++) {
+            canvas[i][j] = green;
         }
     }
 
-    dest.blitScaled(src);
-    dest.blit(canvas);
+    canvas.line(Position(9, 0), Position(0, 6), red);
+
+    /*
+     * rendering pixel boundaries
+     */
+    Bpp4Surface network(dest.width(), dest.height(), format);
+    for (auto i = 0; i < 600; i+=60) {
+        network.line(Position(0, i), Position(599, i), white);
+        network.line(Position(i, 0), Position(i, 599), white);
+    }
+
+    network.line(Position(599, 0), Position(0, 419), blue);
+
+    dest.blitScaled(canvas);
+    dest.blit(network);
     window.update();
     idlewait(nullptr, window);
     return 0;

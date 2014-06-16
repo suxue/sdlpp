@@ -41,6 +41,7 @@ extern "C" {
 #include <cstddef>
 #include <memory>
 #include <type_traits>
+#include <cstdlib>
 
 namespace sdlpp {
 
@@ -236,6 +237,10 @@ namespace sdlpp {
         }
     };
 
+    inline std::ostream& operator<<(std::ostream& os, Position pos) {
+        return os << "(" << pos.x << "," << pos.y << ")";
+    }
+
     class Handler;
 
     //! see Handler::createWindow
@@ -293,7 +298,7 @@ namespace sdlpp {
     //! structure represents color by RGB and alpha value
     struct Color {
         Color(std::uint8_t r, std::uint8_t g,
-              std::uint8_t b, std::uint8_t a = 0);
+              std::uint8_t b, std::uint8_t a = 0xff);
         Color(PixelValue pixel, const SDL_PixelFormat* format);
         std::uint8_t red;
         std::uint8_t green;
@@ -478,21 +483,29 @@ namespace sdlpp {
     public:
         PixelCell& operator[](int i);
         operator PixelValue();
+        operator Color();
         PixelCell& operator=(PixelValue v);
+        PixelCell& operator=(Color v);
         PixelCell(Canvas<Derived>* c, int xx);
     };
 
-    ////! for CRTP (static polymorphism)
-    ////! Canvas depend on Derived::setPixel() and Derived::getPixel()
+    //! for CRTP (static polymorphism)
+    //! Canvas depend on Derived::setPixel(), Derived::getPixel() and
+    //! Dervived::getFormat()
     template<typename Derived>
     class Canvas {
         static_assert(Drawable<Derived>::value, "Derived is invalid");
     public:
         void setPixel(int x, int y, PixelValue v);
+        void setPixel(int x, int y, Color v);
         PixelValue getPixel(int x, int y);
         Canvas() {}
-        void drawLine(Position a, Position b);
+        void line(Position a, Position b, PixelValue pixel);
+        void line(Position a, Position b, Color pixel);
         PixelCell<Derived> operator[](int x);
+
+        //! delegate to canvas implementation class
+        SDL_PixelFormat *getPixelFormat();
     };
 
     class Bpp4Surface : public Surface, public Canvas<Bpp4Surface> {
@@ -987,6 +1000,16 @@ namespace sdlpp {
     }
 
     template<typename Derived>
+    void Canvas<Derived>::setPixel(int x, int y, Color c) {
+        static_cast<Derived*>(this)->setPixel(x, y, c.mapRGBA(getPixelFormat()));
+    }
+
+    template<typename Derived>
+    SDL_PixelFormat *Canvas<Derived>::getPixelFormat() {
+        return static_cast<Derived*>(this)->getFormat();
+    }
+
+    template<typename Derived>
     PixelValue Canvas<Derived>::getPixel(int x, int y) {
         return static_cast<Derived*>(this)->getPixel(x, y);
     }
@@ -1041,8 +1064,19 @@ namespace sdlpp {
     }
 
     template<typename Derived>
+    PixelCell<Derived>::operator Color() {
+        return Color(canvas->getPixel(x, y), canvas->getPixelFormat());
+    }
+
+    template<typename Derived>
     PixelCell<Derived>& PixelCell<Derived>::operator=(PixelValue v) {
         canvas->setPixel(x, y, v);
+        return *this;
+    }
+
+    template<typename Derived>
+    PixelCell<Derived>& PixelCell<Derived>::operator=(Color c) {
+        canvas->setPixel(x, y, c.mapRGBA(canvas->getPixelFormat()));
         return *this;
     }
 
@@ -1052,6 +1086,33 @@ namespace sdlpp {
     template<typename Derived>
     PixelCell<Derived> Canvas<Derived>::operator[](int x) {
         return PixelCell<Derived>(this, x);
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::line(Position a, Position b, PixelValue pixel) {
+        int dx = std::abs(b.x - a.x), sx = a.x < b.x ? 1 : -1;
+        int dy = -std::abs(b.y - a.y), sy = a.y < b.y ? 1 : -1;
+        int err = dx + dy, e2;
+
+        for (; ;) {
+            setPixel(a.x, a.y, pixel);
+            e2 = 2 * err;
+            if (e2 >= dy) {
+                if (a.x == b.x) break;
+                err += dy;
+                a.x += sx;
+            }
+            if (e2 <= dx) {
+                if (a.y == b.y) break;
+                err += dx;
+                a.y += sy;
+            }
+        }
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::line(Position a, Position b, Color c) {
+        line(a, b, c.mapRGBA(getPixelFormat()));
     }
 }
 
