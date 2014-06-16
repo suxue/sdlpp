@@ -75,6 +75,6 @@ int main(int argc, char *argv[])
     }
     renderer.present();
 
-    idlewait(renderer, window);
+    idlewait(&renderer, window);
     return 0;
 }

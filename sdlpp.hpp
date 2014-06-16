@@ -287,17 +287,20 @@ namespace sdlpp {
         PointerHolder& operator=(const PointerHolder&);
     };
 
+    //! can hold largest pixel
     typedef std::uint32_t PixelValue;
 
     //! structure represents color by RGB and alpha value
     struct Color {
         Color(std::uint8_t r, std::uint8_t g,
-              std::uint8_t b, std::uint8_t a = 0xff);
+              std::uint8_t b, std::uint8_t a = 0);
+        Color(PixelValue pixel, const SDL_PixelFormat* format);
         std::uint8_t red;
         std::uint8_t green;
         std::uint8_t blue;
         std::uint8_t alpha;
-        PixelValue genPixel(SDL_PixelFormat *format);
+        PixelValue mapRGB(SDL_PixelFormat *format);
+        PixelValue mapRGBA(SDL_PixelFormat *format);
     };
 
     class Window;
@@ -394,45 +397,25 @@ namespace sdlpp {
          PixelMask(PixelFormat format = DEFAULT_PIXEL_FORMAT);
     };
 
-
-    class Surface;
-
-    //! current only support 4 byte width pixel
-    class Pixel {
-        friend Surface;
-        PixelValue *data;
-        const SDL_PixelFormat *format;
-        Pixel(PixelValue *d, const SDL_PixelFormat* f);
-        template<typename T> Pixel& offset(T len);
-    public:
-        template<typename T> Pixel &operator+=(T offset);
-        template<typename T> Pixel &operator-=(T offset);
-        Pixel &operator++();
-        Pixel &operator--();
-        bool operator==(Pixel p);
-        bool operator!=(Pixel p);
-        operator PixelValue();
-        operator Color();
-        Pixel& operator=(PixelValue v);
-    };
-
     //! a collection of pixels used in software blitting
-    class Surface : public PointerHolder<SDL_Surface> {
+    class Surface: public PointerHolder<SDL_Surface> {
         friend Window;
     private:
         bool needDeallocate;
 
+    protected:
         /*!
          * @param managed true when no need to call SDL_DestroySurface in dtor
          */
         Surface(SDL_Surface *p, bool managed = false);
-    public:
-        ~Surface();
-        Surface(Surface&& s);
 
         //! Constructor that build a empty surface with given format
         Surface(int width, int height, PixelFormat format = DEFAULT_PIXEL_FORMAT);
         Surface(int width, int height, const PixelMask& mask);
+    public:
+        ~Surface();
+        Surface(Surface&& s);
+
         static Surface loadBMP(const std::string& path);
 
         //! load image through SDL2_image extension library
@@ -452,11 +435,12 @@ namespace sdlpp {
         void blitScaled(const Surface& src, Rectangular* srcrect = nullptr,
                   Rectangular* destrect = nullptr);
 
-        const SDL_PixelFormat *getFormat() const;
-        const PixelFormat format() const;
+        SDL_PixelFormat *getFormat();
+        PixelFormat format();
 
         int width() const;
         int height() const;
+        int pitch() const;
 
         //! set the color key (transparent pixel) in a surface
         void setColorKey(const Color& c);
@@ -464,11 +448,60 @@ namespace sdlpp {
         //! clear the color key (transparent pixel) in a surface
         void unsetColorKey(const Color& c);
 
-        Pixel pixels();
-
         //! copy an existing surface into a new one that is optimized for
         //! blitting to a surface of a specified pixel format
         Surface convert(const SDL_PixelFormat *format);
+
+        //! raw pixel data
+        void *pixels();
+
+        //! Bytes Per Pixel
+        int Bpp();
+    };
+
+    template<typename T>
+    struct Drawable {
+        const static bool value = false;
+    };
+    class Bpp4Surface;
+    template<> struct Drawable<Bpp4Surface> { static const bool value = 1; };
+
+    template<typename Derived>
+    class Canvas;
+
+    //! helper class for implementing subscript operator in Canvas
+    template<typename Derived>
+    class PixelCell {
+        Canvas<Derived> *canvas;
+        int x;
+        int y;
+    public:
+        PixelCell& operator[](int i);
+        operator PixelValue();
+        PixelCell& operator=(PixelValue v);
+        PixelCell(Canvas<Derived>* c, int xx);
+    };
+
+    ////! for CRTP (static polymorphism)
+    ////! Canvas depend on Derived::setPixel() and Derived::getPixel()
+    template<typename Derived>
+    class Canvas {
+        static_assert(Drawable<Derived>::value, "Derived is invalid");
+    public:
+        void setPixel(int x, int y, PixelValue v);
+        PixelValue getPixel(int x, int y);
+        Canvas() {}
+        void drawLine(Position a, Position b);
+        PixelCell<Derived> operator[](int x);
+    };
+
+    class Bpp4Surface : public Surface, public Canvas<Bpp4Surface> {
+    public:
+        Bpp4Surface(int width, int height, PixelFormat format);
+        void setPixel(int x, int y, PixelValue value);
+        PixelValue getPixel(int x, int y);
+    private:
+        static PixelFormat check(PixelFormat format);
     };
 
     //! small object which is moveable and repsent a canvas
@@ -725,7 +758,7 @@ namespace sdlpp {
     inline Surface::~Surface() { if (needDeallocate) { SDL_FreeSurface(ptr); } }
     inline Surface::Surface(Surface&& s): PointerHolder((PointerHolder&&)s),
                                  needDeallocate(s.needDeallocate) {}
-    inline const SDL_PixelFormat *Surface::getFormat() const { return ptr->format; }
+    inline SDL_PixelFormat *Surface::getFormat() { return ptr->format; }
     inline Surface Surface::convert(const SDL_PixelFormat *format) {
         SDL_Surface *newsuf = SDL_ConvertSurface(ptr,
                 const_cast<SDL_PixelFormat*>(format), 0);
@@ -932,47 +965,98 @@ namespace sdlpp {
         ptr = s;
     }
 
-    inline const PixelFormat Surface::format() const {
+    inline PixelFormat Surface::format() {
         return (PixelFormat)getFormat()->format;
     }
 
-    inline Pixel::Pixel(PixelValue *d, const SDL_PixelFormat* f)
-        : data(d), format(f) {
-        if (format->BytesPerPixel != 4) {
-            throw error::RuntimeError("color depth is not 32");
-        }
-    }
-
-    template<typename T>
-    inline Pixel& Pixel::offset(T len) {
-        static_assert(std::is_integral<T>::value, "T is not integral type");
-        data += len;
-        return *this;
-    }
-
-    template<typename T> Pixel& Pixel::operator+=(T o) { return offset(o); }
-    template<typename T> Pixel& Pixel::operator-=(T o) { return offset(-o); }
-    inline Pixel& Pixel::operator++() { return offset(1); }
-    inline Pixel& Pixel::operator--() { return offset(-1); }
-    inline bool Pixel::operator==(Pixel p) { return data == p.data; }
-    inline bool Pixel::operator!=(Pixel p) { return data != p.data; }
-    inline Pixel::operator PixelValue() { return *data;}
-    inline Pixel& Pixel::operator=(PixelValue v) { *data = v; return *this;}
-    inline Pixel::operator Color() {
-        auto d = *data;
-        return Color(d & format->Rmask, d & format->Gmask,
-                     d & format->Bmask, d & format->Amask);
-    }
-
-    inline PixelValue Color::genPixel(SDL_PixelFormat *format) {
+    inline PixelValue Color::mapRGBA(SDL_PixelFormat *format) {
         return SDL_MapRGBA(format, red, green, blue, alpha);
     }
 
-    inline Pixel Surface::pixels() {
-        return Pixel((PixelValue*)ptr->pixels, ptr->format);
+    inline PixelValue Color::mapRGB(SDL_PixelFormat *format) {
+        return SDL_MapRGB(format, red, green, blue);
+    }
+
+    inline void * Surface::pixels() { return ptr->pixels; }
+    inline int Surface::Bpp() { return getFormat()->BytesPerPixel; }
+    inline int Surface::pitch() const { return ptr->pitch; }
+
+    template<typename Derived>
+    void Canvas<Derived>::setPixel(int x, int y, PixelValue v) {
+        static_cast<Derived*>(this)->setPixel(x, y, v);
+    }
+
+    template<typename Derived>
+    PixelValue Canvas<Derived>::getPixel(int x, int y) {
+        return static_cast<Derived*>(this)->getPixel(x, y);
+    }
+
+    inline Bpp4Surface::Bpp4Surface(int width, int height, PixelFormat format)
+        : Surface(width, height, Bpp4Surface::check(format)), Canvas() {}
+
+    inline PixelFormat Bpp4Surface::check(PixelFormat format) {
+        PixelMask m(format);
+        if (m.bpp > 24) {
+            return format;
+        } else {
+            throw error::RuntimeError("format does not has 4 byte pixel");
+        }
+    }
+
+    inline void Bpp4Surface::setPixel(int x, int y, PixelValue value) {
+        auto rawbytes = static_cast<std::uint8_t*>(pixels());
+        rawbytes += y * pitch();
+        auto rawpixels = reinterpret_cast<std::uint32_t*>(rawbytes);
+        rawpixels += x;
+        *rawpixels = value;
+    }
+
+    inline PixelValue Bpp4Surface::getPixel(int x, int y) {
+        auto rawbytes = static_cast<std::uint8_t*>(pixels());
+        rawbytes += y * pitch();
+        auto rawpixels = reinterpret_cast<std::uint32_t*>(rawbytes);
+        rawpixels += x;
+        return *rawpixels;
+    }
+
+    inline Color::Color(PixelValue pixel, const SDL_PixelFormat* format) {
+        SDL_GetRGB(pixel, format, &red, &green, &blue);
+        alpha = 0xff;
+    }
+
+    inline std::ostream& operator<<(std::ostream& out, Color color) {
+        return (out << "(" << (int)color.red << "," << (int)color.green <<
+            ","<<(int)color.blue << "," <<(int)color.alpha) << ")";
+    }
+
+    template<typename Derived>
+    PixelCell<Derived>& PixelCell<Derived>::operator[](int i) {
+        y = i;
+        return *this;
+    }
+
+    template<typename Derived>
+    PixelCell<Derived>::operator PixelValue() {
+        return canvas->getPixel(x, y);
+    }
+
+    template<typename Derived>
+    PixelCell<Derived>& PixelCell<Derived>::operator=(PixelValue v) {
+        canvas->setPixel(x, y, v);
+        return *this;
+    }
+
+    template<typename Derived>
+    PixelCell<Derived>::PixelCell(Canvas<Derived>* c, int xx) : canvas(c), x(xx), y(0) {}
+
+    template<typename Derived>
+    PixelCell<Derived> Canvas<Derived>::operator[](int x) {
+        return PixelCell<Derived>(this, x);
     }
 }
 
+#ifndef SDLPP_PRIVATE
 #undef THROW_SDLPP_RUNTIME_ERROR
 #undef TO_NUMBER
+#endif
 #endif

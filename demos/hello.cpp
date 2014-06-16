@@ -56,6 +56,6 @@ main
 
     // dest.blitScaled(srcopt);
     // window.update();
-    idlewait(renderer, window);
+    idlewait(&renderer, window);
     return 0;
 }

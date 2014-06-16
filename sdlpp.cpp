@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  */
 
+#define SDLPP_PRIVATE
 #include "sdlpp.hpp"
 #include <iostream>
 #include <functional>
@@ -105,7 +106,7 @@ void
 Renderer::copy(Texture& texture, const Rectangular* src, const Rectangular* dest)
 {
     if (SDL_RenderCopy(ptr, texture.get(), src, dest)) {
-        throw error::RuntimeError();
+        THROW_SDLPP_RUNTIME_ERROR();
     }
 }
 

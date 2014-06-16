@@ -33,13 +33,26 @@ using namespace std;
 int main(int argc, char *argv[])
 {
     auto sdl = Initializer().video().events().acquire();
-    auto window = sdl.createWindow("flip and rotation",
+    auto window = sdl.createWindow("software rendering",
             Rectangular(800, 600));
-    Renderer renderer(window.getRenderer());
-    Texture arrow(renderer, Surface::loadIMG(DEMO_PATH("arrow.png")));
-    renderer.copy(arrow);
-    renderer.present();
+    Surface dest(window.getSurface());
+    Surface src(Surface::loadIMG(string(SDLPP_DEMO_DATA_DIR) + "arrow.png"));
 
-    idlewait(renderer, window);
+    PixelFormat format = SDL_PIXELFORMAT_ARGB8888;
+    Bpp4Surface canvas(200, 100, format);
+    PixelValue value = Color(0, 0x1f, 0xff).mapRGB(canvas.getFormat());
+    cout << Color(value, canvas.getFormat()) << endl;
+    cout << value << endl;
+    for (auto j = 0; j < 100; j++) {
+        for (auto i = 0; i < 200; i++) {
+            //canvas.setPixel(i, j, value);
+            canvas[i][j] = value;
+        }
+    }
+
+    dest.blitScaled(src);
+    dest.blit(canvas);
+    window.update();
+    idlewait(nullptr, window);
     return 0;
 }

@@ -96,6 +96,6 @@ int main(int argc, char *argv[])
         }
     };
 
-    idlewait(renderer, window, callback);
+    idlewait(&renderer, window, callback);
     return 0;
 }

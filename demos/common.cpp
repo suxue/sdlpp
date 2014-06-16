@@ -32,7 +32,7 @@ using namespace std;
 
 bool maxmin = false;
 
-void idlewait(Renderer& renderer, Window& window, Callback cb)
+void idlewait(Renderer* renderer, Window& window, Callback cb)
 {
     EventData e;
     while (true) {
@@ -44,7 +44,11 @@ void idlewait(Renderer& renderer, Window& window, Callback cb)
             auto p = e.acquire<EventType::Window>();
             switch (p.getID()) {
                 case SDL_WINDOWEVENT_EXPOSED:
-                    renderer.present();
+                    if (renderer) {
+                        renderer->present();
+                    } else {
+                        window.update();
+                    }
                     if (maxmin) {
                         maxmin = true;
                         window.restore();
