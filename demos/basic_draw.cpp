@@ -52,12 +52,13 @@ int main (int argc, char *argv[])
 
     Color blue(0x00, 0x00, 0xFF);
     renderer.setDrawColor(blue);
-    renderer.drawLine(0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2);
+    renderer.drawLine(Position(0, SCREEN_HEIGHT / 2),
+                      Position(SCREEN_WIDTH, SCREEN_HEIGHT / 2));
 
     Color green(0x00, 0xff, 0x00);
     renderer.setDrawColor(green);
     for (auto i = 0; i < SCREEN_HEIGHT; i += 4) {
-        renderer.drawPoint(SCREEN_WIDTH / 2, i);
+        renderer.setPixel(Position(SCREEN_WIDTH / 2, i));
     }
     idlewait(&renderer, window);
     return 0;

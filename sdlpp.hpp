@@ -367,10 +367,10 @@ namespace sdlpp {
         void fillRect(const Rectangular& rect);
 
         //! draw a line on the current rendering target (x1, y1) -> (x2, y2)
-        void drawLine(int x1, int y1, int x2, int y2);
+        void drawLine(Position a, Position b);
 
         //! draw a point on the current rendering target (x, y)
-        void drawPoint(int x, int y);
+        void setPixel(Position pos);
 
         //! create a static texture associated with current renderer
         StaticTexture spawnStatic(int width, int height,
@@ -495,14 +495,15 @@ namespace sdlpp {
     template<typename Derived>
     class Canvas {
         static_assert(Drawable<Derived>::value, "Derived is invalid");
+        PixelValue drawColor;
     public:
-        void setPixel(int x, int y, PixelValue v);
-        void setPixel(int x, int y, Color v);
+        void setPixel(int x, int y);
         PixelValue getPixel(int x, int y);
-        Canvas() {}
-        void line(Position a, Position b, PixelValue pixel);
-        void line(Position a, Position b, Color pixel);
+        Canvas() : drawColor(0) {}
+        void drawLine(Position a, Position b);
         PixelCell<Derived> operator[](int x);
+        void setDrawColor(Color color);
+        void setDrawColor(PixelValue pv);
 
         //! delegate to canvas implementation class
         SDL_PixelFormat *getPixelFormat();
@@ -838,14 +839,14 @@ namespace sdlpp {
         }
     }
 
-    inline void Renderer::drawLine(int x1, int y1, int x2, int y2) {
-        if (SDL_RenderDrawLine(ptr, x1, y1, x2, y2) < 0) {
+    inline void Renderer::drawLine(Position a, Position b) {
+        if (SDL_RenderDrawLine(ptr, a.x, a.y, b.x, b.y) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
     }
 
-    inline void Renderer::drawPoint(int x, int y) {
-        if (SDL_RenderDrawPoint(ptr, x, y) < 0) {
+    inline void Renderer::setPixel(Position p) {
+        if (SDL_RenderDrawPoint(ptr, p.x, p.y) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
     }
@@ -995,13 +996,18 @@ namespace sdlpp {
     inline int Surface::pitch() const { return ptr->pitch; }
 
     template<typename Derived>
-    void Canvas<Derived>::setPixel(int x, int y, PixelValue v) {
-        static_cast<Derived*>(this)->setPixel(x, y, v);
+    void Canvas<Derived>::setPixel(int x, int y) {
+        static_cast<Derived*>(this)->setPixel(x, y, drawColor);
     }
 
     template<typename Derived>
-    void Canvas<Derived>::setPixel(int x, int y, Color c) {
-        static_cast<Derived*>(this)->setPixel(x, y, c.mapRGBA(getPixelFormat()));
+    void Canvas<Derived>::setDrawColor(Color c) {
+        drawColor = c.mapRGBA(getPixelFormat());
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::setDrawColor(PixelValue v) {
+        drawColor = v;
     }
 
     template<typename Derived>
@@ -1076,7 +1082,8 @@ namespace sdlpp {
 
     template<typename Derived>
     PixelCell<Derived>& PixelCell<Derived>::operator=(Color c) {
-        canvas->setPixel(x, y, c.mapRGBA(canvas->getPixelFormat()));
+        canvas->setDrawColor(c);
+        canvas->setPixel(x, y);
         return *this;
     }
 
@@ -1089,13 +1096,13 @@ namespace sdlpp {
     }
 
     template<typename Derived>
-    void Canvas<Derived>::line(Position a, Position b, PixelValue pixel) {
+    void Canvas<Derived>::drawLine(Position a, Position b) {
         int dx = std::abs(b.x - a.x), sx = a.x < b.x ? 1 : -1;
         int dy = -std::abs(b.y - a.y), sy = a.y < b.y ? 1 : -1;
         int err = dx + dy, e2;
 
         for (; ;) {
-            setPixel(a.x, a.y, pixel);
+            setPixel(a.x, a.y);
             e2 = 2 * err;
             if (e2 >= dy) {
                 if (a.x == b.x) break;
@@ -1108,11 +1115,6 @@ namespace sdlpp {
                 a.y += sy;
             }
         }
-    }
-
-    template<typename Derived>
-    void Canvas<Derived>::line(Position a, Position b, Color c) {
-        line(a, b, c.mapRGBA(getPixelFormat()));
     }
 }
 

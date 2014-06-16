@@ -46,24 +46,28 @@ int main(int argc, char *argv[])
      */
     PixelFormat format = SDL_PIXELFORMAT_ARGB8888;
     Bpp4Surface canvas(10, 10, format);
+
     for (auto j = 0; j < 10; j++) {
         for (auto i = 0; i < 10; i++) {
             canvas[i][j] = white;
         }
     }
 
-    canvas.line(Position(9, 0), Position(0, 6), green);
+    canvas.setDrawColor(green);
+    canvas.drawLine(Position(9, 0), Position(0, 6));
 
     /*
      * rendering pixel boundaries
      */
     Bpp4Surface network(dest.width(), dest.height(), format);
+    network.setDrawColor(blue);
     for (auto i = 0; i < 600; i+=60) {
-        network.line(Position(0, i), Position(599, i), blue);
-        network.line(Position(i, 0), Position(i, 599), blue);
+        network.drawLine(Position(0, i), Position(599, i));
+        network.drawLine(Position(i, 0), Position(i, 599));
     }
 
-    network.line(Position(599, 0), Position(0, 419), red);
+    network.setDrawColor(red);
+    network.drawLine(Position(599, 0), Position(0, 419));
 
     dest.blitScaled(canvas);
     dest.blit(network);
