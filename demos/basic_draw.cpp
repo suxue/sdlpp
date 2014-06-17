@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
     Color green(0x00, 0xff, 0x00);
     renderer.setDrawColor(green);
     for (auto i = 0; i < SCREEN_HEIGHT; i += 4) {
-        renderer.setPixel(Position(SCREEN_WIDTH / 2, i));
+        renderer.drawPoint(Position(SCREEN_WIDTH / 2, i));
     }
     idlewait(&renderer, window);
     return 0;

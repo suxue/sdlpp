@@ -68,6 +68,8 @@ int main(int argc, char *argv[])
 
     network.setDrawColor(red);
     network.drawLine(Position(599, 0), Position(0, 419));
+    network.drawEllipse(Position(200, 100), Position(100, 50));
+    network.drawPoint(Position(200, 100));
 
     dest.blitScaled(canvas);
     dest.blit(network);

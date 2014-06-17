@@ -370,7 +370,7 @@ namespace sdlpp {
         void drawLine(Position a, Position b);
 
         //! draw a point on the current rendering target (x, y)
-        void setPixel(Position pos);
+        void drawPoint(Position pos);
 
         //! create a static texture associated with current renderer
         StaticTexture spawnStatic(int width, int height,
@@ -478,8 +478,7 @@ namespace sdlpp {
     template<typename Derived>
     class PixelCell {
         Canvas<Derived> *canvas;
-        int x;
-        int y;
+        Position pos;
     public:
         PixelCell& operator[](int i);
         operator PixelValue();
@@ -495,12 +494,15 @@ namespace sdlpp {
     template<typename Derived>
     class Canvas {
         static_assert(Drawable<Derived>::value, "Derived is invalid");
+        friend PixelCell<Derived>;
         PixelValue drawColor;
+        PixelValue getPixel(int x, int y); //!< inelined to Dervied::getPixel()
+        void setPixel(int x, int y, PixelValue v); //!< inlined to Derived::setPixel()
     public:
-        void setPixel(int x, int y);
-        PixelValue getPixel(int x, int y);
         Canvas() : drawColor(0) {}
+        void drawPoint(Position pos);
         void drawLine(Position a, Position b);
+        void drawEllipse(Position center, Position radius);
         PixelCell<Derived> operator[](int x);
         void setDrawColor(Color color);
         void setDrawColor(PixelValue pv);
@@ -845,7 +847,7 @@ namespace sdlpp {
         }
     }
 
-    inline void Renderer::setPixel(Position p) {
+    inline void Renderer::drawPoint(Position p) {
         if (SDL_RenderDrawPoint(ptr, p.x, p.y) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
@@ -996,8 +998,13 @@ namespace sdlpp {
     inline int Surface::pitch() const { return ptr->pitch; }
 
     template<typename Derived>
-    void Canvas<Derived>::setPixel(int x, int y) {
-        static_cast<Derived*>(this)->setPixel(x, y, drawColor);
+    void Canvas<Derived>::drawPoint(Position pos) {
+        setPixel(pos.x, pos.y, drawColor);
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::setPixel(int x, int y, PixelValue v) {
+        static_cast<Derived*>(this)->setPixel(x, y, v);
     }
 
     template<typename Derived>
@@ -1060,35 +1067,34 @@ namespace sdlpp {
 
     template<typename Derived>
     PixelCell<Derived>& PixelCell<Derived>::operator[](int i) {
-        y = i;
+        pos.y = i;
         return *this;
     }
 
     template<typename Derived>
     PixelCell<Derived>::operator PixelValue() {
-        return canvas->getPixel(x, y);
+        return canvas->getPixel(pos.x, pos.y);
     }
 
     template<typename Derived>
     PixelCell<Derived>::operator Color() {
-        return Color(canvas->getPixel(x, y), canvas->getPixelFormat());
+        return Color(canvas->getPixel(pos.x, pos.y), canvas->getPixelFormat());
     }
 
     template<typename Derived>
     PixelCell<Derived>& PixelCell<Derived>::operator=(PixelValue v) {
-        canvas->setPixel(x, y, v);
+        canvas->setPixel(pos.x, pos.y, v);
         return *this;
     }
 
     template<typename Derived>
     PixelCell<Derived>& PixelCell<Derived>::operator=(Color c) {
-        canvas->setDrawColor(c);
-        canvas->setPixel(x, y);
+        canvas->setPixel(pos.x, pos.y, c.mapRGBA(canvas->getPixelFormat()));
         return *this;
     }
 
     template<typename Derived>
-    PixelCell<Derived>::PixelCell(Canvas<Derived>* c, int xx) : canvas(c), x(xx), y(0) {}
+    PixelCell<Derived>::PixelCell(Canvas<Derived>* c, int x) : canvas(c), pos(x,0) {}
 
     template<typename Derived>
     PixelCell<Derived> Canvas<Derived>::operator[](int x) {
@@ -1102,7 +1108,7 @@ namespace sdlpp {
         int err = dx + dy, e2;
 
         for (; ;) {
-            setPixel(a.x, a.y);
+            drawPoint(a);
             e2 = 2 * err;
             if (e2 >= dy) {
                 if (a.x == b.x) break;
@@ -1114,6 +1120,32 @@ namespace sdlpp {
                 err += dx;
                 a.y += sy;
             }
+        }
+    }
+
+
+    template<typename Derived>
+    void Canvas<Derived>::drawEllipse(Position center, Position radius) {
+        int a = center.x, b = center.y;
+        int xm = radius.x, ym = radius.y;
+        int x = -a, y = 0;
+        long e2 = (long)b*b, err = x*(2*e2+x)+e2;
+
+        do {
+            setPixel(xm-x, ym+y, drawColor);
+            setPixel(xm+x, ym+y, drawColor);
+            setPixel(xm+x, ym-y, drawColor);
+            setPixel(xm-x, ym-y, drawColor);
+            e2 = 2*err;
+            if (e2 >= (x*2+1)*(long)b*b)
+                err += (++x*2+1) * (long)b*b;
+            if (e2 <= (y*2+1)*(long)a*a)
+                err += (++y*2+1)*(long)a*a;
+        } while (x <= 0);
+
+        while (y++ < b) {
+            setPixel(xm, ym+y, drawColor);
+            setPixel(xm, ym-y, drawColor);
         }
     }
 }
