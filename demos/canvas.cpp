@@ -36,10 +36,6 @@ int main(int argc, char *argv[])
     auto window = sdl.createWindow("software rendering",
             Rectangular(600, 600));
     Surface dest(window.getSurface());
-    Color white(0xff, 0xff, 0xff);
-    Color red(0xff, 0, 0);
-    Color green(0, 0xff, 0);
-    Color blue(0, 0, 0xff);
 
     /*
      * rendering pixels
@@ -49,27 +45,34 @@ int main(int argc, char *argv[])
 
     for (auto j = 0; j < 10; j++) {
         for (auto i = 0; i < 10; i++) {
-            canvas[i][j] = white;
+            canvas[i][j] = Color::White;
         }
     }
 
-    canvas.setDrawColor(green);
+    canvas.setDrawColor(Color::Lime);
     canvas.drawLine(Position(9, 0), Position(0, 6));
 
     /*
      * rendering pixel boundaries
      */
     Bpp4Surface network(dest.width(), dest.height(), format);
-    network.setDrawColor(blue);
+    network.setDrawColor(Color::Blue);
     for (auto i = 0; i < 600; i+=60) {
         network.drawLine(Position(0, i), Position(599, i));
         network.drawLine(Position(i, 0), Position(i, 599));
     }
 
-    network.setDrawColor(red);
+    network.setDrawColor(Color::Red);
     network.drawLine(Position(599, 0), Position(0, 419));
+
+    network.setDrawColor(Color::Black);
     network.drawEllipse(Position(200, 100), Position(100, 50));
-    network.drawPoint(Position(200, 100));
+    network.drawPoint(Position(200, 100)); // ellipse center
+    network.drawLine(Position(200, 50), Position(200, 150)); // horizontal
+    network.drawLine(Position(100, 100), Position(300, 100)); // vertical
+
+    network.setDrawColor(Color::Magenta);
+    network.drawCircle(Position(400, 400), 150);
 
     dest.blitScaled(canvas);
     dest.blit(network);

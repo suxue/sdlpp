@@ -297,8 +297,14 @@ namespace sdlpp {
 
     //! structure represents color by RGB and alpha value
     struct Color {
+        enum ColorEnum {
+            Black, White, Red, Lime, Blue, Yellow,
+            Cyan, Magenta, Silver, Gray, Maroon, Olive,
+            Green, Purple, Teal, Navy
+        };
         Color(std::uint8_t r, std::uint8_t g,
               std::uint8_t b, std::uint8_t a = 0xff);
+        Color(ColorEnum value);
         Color(PixelValue pixel, const SDL_PixelFormat* format);
         std::uint8_t red;
         std::uint8_t green;
@@ -483,7 +489,6 @@ namespace sdlpp {
         PixelCell& operator[](int i);
         operator PixelValue();
         operator Color();
-        PixelCell& operator=(PixelValue v);
         PixelCell& operator=(Color v);
         PixelCell(Canvas<Derived>* c, int xx);
     };
@@ -503,9 +508,10 @@ namespace sdlpp {
         void drawPoint(Position pos);
         void drawLine(Position a, Position b);
         void drawEllipse(Position center, Position radius);
+        void drawCircle(Position center, int radius);
         PixelCell<Derived> operator[](int x);
         void setDrawColor(Color color);
-        void setDrawColor(PixelValue pv);
+        void setDrawPixel(PixelValue pv);
 
         //! delegate to canvas implementation class
         SDL_PixelFormat *getPixelFormat();
@@ -1013,7 +1019,7 @@ namespace sdlpp {
     }
 
     template<typename Derived>
-    void Canvas<Derived>::setDrawColor(PixelValue v) {
+    void Canvas<Derived>::setDrawPixel(PixelValue v) {
         drawColor = v;
     }
 
@@ -1082,12 +1088,6 @@ namespace sdlpp {
     }
 
     template<typename Derived>
-    PixelCell<Derived>& PixelCell<Derived>::operator=(PixelValue v) {
-        canvas->setPixel(pos.x, pos.y, v);
-        return *this;
-    }
-
-    template<typename Derived>
     PixelCell<Derived>& PixelCell<Derived>::operator=(Color c) {
         canvas->setPixel(pos.x, pos.y, c.mapRGBA(canvas->getPixelFormat()));
         return *this;
@@ -1126,8 +1126,8 @@ namespace sdlpp {
 
     template<typename Derived>
     void Canvas<Derived>::drawEllipse(Position center, Position radius) {
-        int a = center.x, b = center.y;
-        int xm = radius.x, ym = radius.y;
+        int a = radius.x, b = radius.y;
+        int xm = center.x, ym = center.y;
         int x = -a, y = 0;
         long e2 = (long)b*b, err = x*(2*e2+x)+e2;
 
@@ -1147,6 +1147,23 @@ namespace sdlpp {
             setPixel(xm, ym+y, drawColor);
             setPixel(xm, ym-y, drawColor);
         }
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::drawCircle(Position center, int radius) {
+        int xm = center.x, ym = center.y, r = radius;
+        int x = -r, y = 0, err = 2-2*r;
+
+        do {
+            setPixel(xm-x, ym+y, drawColor);
+            setPixel(xm-y, ym-x, drawColor);
+            setPixel(xm+x, ym-y, drawColor);
+            setPixel(xm+y, ym+x, drawColor);
+            r = err;
+            if (r <= y) err += ++y*2 + 1;
+            if (r > x || err > y)
+                err += ++x * 2+1;
+        } while (x < 0);
     }
 }
 

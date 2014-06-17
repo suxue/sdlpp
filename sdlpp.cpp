@@ -28,6 +28,9 @@
 #include <iostream>
 #include <functional>
 #include <cstring>
+
+using namespace std;
+
 namespace sdlpp {
 
 Window
@@ -108,6 +111,29 @@ Renderer::copy(Texture& texture, const Rectangular* src, const Rectangular* dest
     if (SDL_RenderCopy(ptr, texture.get(), src, dest)) {
         THROW_SDLPP_RUNTIME_ERROR();
     }
+}
+
+Color::Color(ColorEnum e)
+{
+    static Color table[] = {
+        Color(0, 0, 0), // Black
+        Color(0xff, 0xff, 0xff), // White
+        Color(0xff, 0, 0), // Red
+        Color(0, 0xff, 0), // Lime
+        Color(0, 0, 0xff), // Blue
+        Color(0xff, 0xff, 0), // Yellow
+        Color(0, 0xff, 0xff), // Cyan
+        Color(0xff, 0, 0xff), // Magenta
+        Color(192, 192, 192), // Silver
+        Color(128, 128, 128), // Gray
+        Color(128, 0, 0),    // Maroon
+        Color(128, 128, 0),   // Olive
+        Color(0, 128, 0),    // Green
+        Color(128, 0, 128),  // Purple
+        Color(0, 128, 128),  // Teal
+        Color(0, 0, 128)     //Navy
+    };
+    memcpy((void*)this, (void*)&table[e], sizeof(*this));
 }
 
 namespace event {
