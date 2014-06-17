@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 {
     auto sdl = Initializer().video().events().acquire();
     auto window = sdl.createWindow("software rendering",
-            Rectangular(600, 600));
+            Rectangle(600, 600));
     Surface dest(window.getSurface());
 
     /*
@@ -73,6 +73,11 @@ int main(int argc, char *argv[])
 
     network.setDrawColor(Color::Magenta);
     network.drawCircle(Position(400, 400), 150);
+
+    Rectangle bound(100, 200, Position(300, 300));
+    network.setDrawColor(Color::Olive);
+    network.drawEllipse(bound);
+    network.drawRectangle(bound);
 
     dest.blitScaled(canvas);
     dest.blit(network);

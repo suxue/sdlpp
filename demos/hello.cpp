@@ -45,7 +45,7 @@ main
 
     Handler sdl = Initializer().acquire();
     auto wm = WindowMode();
-    auto window = sdl.createWindow("sdlpp_demo", Rectangular(width, height),
+    auto window = sdl.createWindow("sdlpp_demo", Rectangle(width, height),
             wm.opengl());
     auto dest = window.getSurface();
     auto srcopt = src.convert(dest.getFormat());

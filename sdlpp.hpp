@@ -262,15 +262,15 @@ namespace sdlpp {
     };
 
     //! a quadruple structure, x, y coordinate, weight and height
-    struct Rectangular : public SDL_Rect {
-        Rectangular(int wi, int hi,
+    struct Rectangle : public SDL_Rect {
+        Rectangle(int wi, int hi,
                     const Position& pos = Position()) {
             x = pos.x;
             y = pos.y;
             w = wi;
             h = hi;
         }
-        Rectangular() {}
+        Rectangle() {}
     };
 
     typedef decltype(SDL_PIXELFORMAT_ARGB8888) PixelFormat;
@@ -340,8 +340,8 @@ namespace sdlpp {
          * copy a portion of the texture to the current rendering target.
          * The texture will be stretched to fill the given rectangle
          */
-        void copy(Texture& texture, const Rectangular* srcrect = nullptr,
-                const Rectangular* destrect = nullptr);
+        void copy(Texture& texture, const Rectangle* srcrect = nullptr,
+                const Rectangle* destrect = nullptr);
 
         /*!
          * @brief copy a portion of the texture to the current rendering
@@ -352,8 +352,8 @@ namespace sdlpp {
          * @param flip horizontalFlip(), verticalFlip() or default(no * flip)
          */
         void copy(Texture& texture, const double angle,
-                const Rectangular* srcrect = nullptr,
-                const Rectangular* destrect = nullptr,
+                const Rectangle* srcrect = nullptr,
+                const Rectangle* destrect = nullptr,
                 const Position* center = nullptr,
                 SDL_RendererFlip flip = SDL_FLIP_NONE);
 
@@ -370,7 +370,7 @@ namespace sdlpp {
         void setDrawColor(const Color& color);
 
         //! fill rectangular with current color
-        void fillRect(const Rectangular& rect);
+        void fillRect(const Rectangle& rect);
 
         //! draw a line on the current rendering target (x1, y1) -> (x2, y2)
         void drawLine(Position a, Position b);
@@ -441,10 +441,10 @@ namespace sdlpp {
             using error::RuntimeError::RuntimeError;
         };
         void blit(const Surface& src,
-                  const Rectangular* srcrect = nullptr,
+                  const Rectangle* srcrect = nullptr,
                   const Position* destpos = nullptr);
-        void blitScaled(const Surface& src, Rectangular* srcrect = nullptr,
-                  Rectangular* destrect = nullptr);
+        void blitScaled(const Surface& src, Rectangle* srcrect = nullptr,
+                  Rectangle* destrect = nullptr);
 
         SDL_PixelFormat *getFormat();
         PixelFormat format();
@@ -508,7 +508,10 @@ namespace sdlpp {
         void drawPoint(Position pos);
         void drawLine(Position a, Position b);
         void drawEllipse(Position center, Position radius);
+        void drawEllipse(Rectangle rect); //!< ellipse inside a rectangle 
+        void drawRectangle(Rectangle rect);
         void drawCircle(Position center, int radius);
+        void fillCircle(Position center, int radius);
         PixelCell<Derived> operator[](int x);
         void setDrawColor(Color color);
         void setDrawPixel(PixelValue pv);
@@ -600,7 +603,7 @@ namespace sdlpp {
          * @param wm window properties
          */
         Window createWindow(const std::string& title,
-                            const Rectangular& rect,
+                            const Rectangle& rect,
                             WindowMode wm = WindowMode());
     };
 
@@ -841,7 +844,7 @@ namespace sdlpp {
         }
     }
 
-    inline void Renderer::fillRect(const Rectangular& rect) {
+    inline void Renderer::fillRect(const Rectangle& rect) {
         if (SDL_RenderFillRect(ptr, &rect) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
@@ -949,8 +952,8 @@ namespace sdlpp {
     }
 
     inline void Renderer::copy(Texture& texture, const double angle,
-            const Rectangular* srcrect,
-            const Rectangular* destrect,
+            const Rectangle* srcrect,
+            const Rectangle* destrect,
             const Position* center,
             SDL_RendererFlip flip) {
         if (SDL_RenderCopyEx(ptr, texture.get(), srcrect, destrect, angle,
@@ -1164,6 +1167,54 @@ namespace sdlpp {
             if (r > x || err > y)
                 err += ++x * 2+1;
         } while (x < 0);
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::drawEllipse(Rectangle rect) {
+        int x0 = rect.x, y0 = rect.y;
+        int x1 = x0 + rect.w, y1 = y0 + rect.h;
+
+        long a = abs(x1-x0), b = abs(y1-y0), b1 = b&1;
+        double dx = 4*(1.0-a)*b*b, dy = 4*(b1+1)*a*a;
+        double err = dx+dy+b1*a*a, e2;
+
+        if (x0 > x1) { x0 = x1; x1 += a; }
+        if (y0 > y1) y0 = y1;
+        y0 += (b+1) / 2;
+        y1 = y0 - b1;
+        a = 8*a*a;
+        b1 = 8*b*b;
+
+        do {
+            setPixel(x1, y0, drawColor);
+            setPixel(x0, y0, drawColor);
+            setPixel(x0, y1, drawColor);
+            setPixel(x1, y1, drawColor);
+            e2 = 2*err;
+            if (e2 <= dy) { y0++; y1-- ; err += dy += a; }
+            if (e2 >= dx || 2*err > dy) { x0++; x1-- ; err += dx += b1;}
+        } while (x0 <= x1);
+
+        while (y0-y1 <= b) {
+            setPixel(x0-1, y0, drawColor);
+            setPixel(x1+1, y0++, drawColor);
+            setPixel(x0-1, y1, drawColor);
+            setPixel(x1+1, y1--, drawColor);
+        }
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::drawRectangle(Rectangle rect) {
+        // a b
+        // c d
+        Position a(rect.x, rect.y);
+        Position c(rect.x, rect.y+rect.h);
+        Position b(rect.x+rect.w, rect.y);
+        Position d(rect.x+rect.w, rect.y+rect.h);
+        drawLine(a, b);
+        drawLine(a, c);
+        drawLine(c, d);
+        drawLine(b, d);
     }
 }
 

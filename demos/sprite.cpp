@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 {
     auto sdl = Initializer().acquire();
     auto window = sdl.createWindow("sdlpp_demo",
-                                    Rectangular(screen_width, screen_height),
+                                    Rectangle(screen_width, screen_height),
                                     WindowMode().opengl());
 
     auto renderer = window.getRenderer();
@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
         { {0, sh}, {0, screen_height - sh}}, // bottom-left
         { {sw, sh}, {screen_width - sw, screen_height - sh} }}; // bottom-right
 
-    Rectangular srcrect(sw, sh);
-    Rectangular destrect(sw, sh);
+    Rectangle srcrect(sw, sh);
+    Rectangle destrect(sw, sh);
     for (unsigned i = 0; i < sizeof(clips) / sizeof(clips[0]); i++) {
         auto p = clips[i];
         srcrect.x = p[0][0];

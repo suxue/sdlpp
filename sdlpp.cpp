@@ -35,7 +35,7 @@ namespace sdlpp {
 
 Window
 Handler::createWindow(const std::string& title,
-                      const Rectangular& rect,
+                      const Rectangle& rect,
                       WindowMode wm)
 {
     SDL_Window *wp = SDL_CreateWindow(title.c_str(),
@@ -81,7 +81,7 @@ Surface::loadIMG(const std::string& path)
 
 void
 Surface::blit(const Surface& src,
-              const Rectangular* srcrect,
+              const Rectangle* srcrect,
         const Position* destpos)
 {
     SDL_Rect tmp;
@@ -97,8 +97,8 @@ Surface::blit(const Surface& src,
 }
 
 void
-Surface::blitScaled(const Surface& src, Rectangular* srcrect,
-                    Rectangular* destrect)
+Surface::blitScaled(const Surface& src, Rectangle* srcrect,
+                    Rectangle* destrect)
 {
     if (SDL_BlitScaled( src.ptr, srcrect, ptr, destrect) != 0) {
         throw BlitFailure();
@@ -106,7 +106,7 @@ Surface::blitScaled(const Surface& src, Rectangular* srcrect,
 }
 
 void
-Renderer::copy(Texture& texture, const Rectangular* src, const Rectangular* dest)
+Renderer::copy(Texture& texture, const Rectangle* src, const Rectangle* dest)
 {
     if (SDL_RenderCopy(ptr, texture.get(), src, dest)) {
         THROW_SDLPP_RUNTIME_ERROR();

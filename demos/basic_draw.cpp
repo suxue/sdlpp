@@ -37,7 +37,7 @@ int main (int argc, char *argv[])
 {
     auto sdl = Initializer().acquire();
     auto window = sdl.createWindow("sdlpp_demo",
-                                    Rectangular(SCREEN_WIDTH, SCREEN_HEIGHT),
+                                    Rectangle(SCREEN_WIDTH, SCREEN_HEIGHT),
                                     WindowMode().opengl());
     auto renderer = window.getRenderer();
     Color white(0xff, 0xff, 0xff);
@@ -45,7 +45,7 @@ int main (int argc, char *argv[])
     renderer.clear();
 
     Color red(0xff, 0x00, 0x00);
-    auto fillRect = Rectangular(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
+    auto fillRect = Rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
                 Position(SCREEN_WIDTH/4, SCREEN_HEIGHT/4));
     renderer.setDrawColor(red);
     renderer.fillRect(fillRect);

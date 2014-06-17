@@ -39,7 +39,7 @@ int main (int argc, char *argv[])
 
     auto sdl = Initializer().acquire();
     auto window = sdl.createWindow("sdlpp_demo",
-                                    Rectangular(width, height),
+                                    Rectangle(width, height),
                                     WindowMode().opengl());
     auto renderer = window.getRenderer();
 
@@ -50,7 +50,7 @@ int main (int argc, char *argv[])
     Color cyan = Color(0, 0xff, 0xff);
     fooSuf.setColorKey(cyan);
     Texture foo(renderer, fooSuf);
-    Rectangular destRect(fooSuf.width(), fooSuf.height(),
+    Rectangle destRect(fooSuf.width(), fooSuf.height(),
             Position(width/2, height/2));
     renderer.copy(foo, nullptr, &destRect);
 

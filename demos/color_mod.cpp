@@ -40,23 +40,23 @@ int main(int argc, char *argv[])
 {
     auto sdl = Initializer().video().events().acquire();
     auto window = sdl.createWindow("color_mod",
-            Rectangular(screen_width, screen_height));
+            Rectangle(screen_width, screen_height));
     Renderer renderer(window.getRenderer());
 
     auto canvas(renderer.spawnTarget(screen_width, screen_height));
     renderer.setTarget(&canvas);
 
     renderer.setDrawColor(Color(0xff, 0xff, 0xff));
-    renderer.fillRect(Rectangular(w, h, Position(0, 0)));
+    renderer.fillRect(Rectangle(w, h, Position(0, 0)));
 
     renderer.setDrawColor(Color(0xff, 0, 0));
-    renderer.fillRect(Rectangular(w, h, Position(w, 0)));
+    renderer.fillRect(Rectangle(w, h, Position(w, 0)));
 
     renderer.setDrawColor(Color(0, 0xff, 0));
-    renderer.fillRect(Rectangular(w, h, Position(0, h)));
+    renderer.fillRect(Rectangle(w, h, Position(0, h)));
 
     renderer.setDrawColor(Color(0, 0, 0xff));
-    renderer.fillRect(Rectangular(w, h, Position(w, h)));
+    renderer.fillRect(Rectangle(w, h, Position(w, h)));
 
     renderer.setTarget();
 
