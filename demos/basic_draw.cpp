@@ -48,7 +48,7 @@ int main (int argc, char *argv[])
     auto fillRect = Rectangle(SCREEN_WIDTH/2, SCREEN_HEIGHT/2,
                 Position(SCREEN_WIDTH/4, SCREEN_HEIGHT/4));
     renderer.setDrawColor(red);
-    renderer.fillRect(fillRect);
+    renderer.fillRectangle(fillRect);
 
     Color blue(0x00, 0x00, 0xFF);
     renderer.setDrawColor(blue);

@@ -42,12 +42,9 @@ int main(int argc, char *argv[])
      */
     PixelFormat format = SDL_PIXELFORMAT_ARGB8888;
     Bpp4Surface canvas(10, 10, format);
+    canvas.setDrawColor(Color::White);
+    canvas.clear();
 
-    for (auto j = 0; j < 10; j++) {
-        for (auto i = 0; i < 10; i++) {
-            canvas[i][j] = Color::White;
-        }
-    }
 
     canvas.setDrawColor(Color::Lime);
     canvas.drawLine(Position(9, 0), Position(0, 6));
@@ -82,6 +79,10 @@ int main(int argc, char *argv[])
 
     network.setDrawColor(Color::Purple);
     network.fillCircle(Position(200, 150), 75);
+
+    bound = Rectangle(100, 200, Position(400, 200));
+    network.setDrawColor(Color::Yellow);
+    network.fillEllipse(bound);
 
     dest.blitScaled(canvas);
     dest.blit(network);

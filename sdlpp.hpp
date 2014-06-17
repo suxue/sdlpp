@@ -371,7 +371,7 @@ namespace sdlpp {
         void setDrawColor(const Color& color);
 
         //! fill rectangular with current color
-        void fillRect(const Rectangle& rect);
+        void fillRectangle(const Rectangle& rect);
 
         //! draw a line on the current rendering target (x1, y1) -> (x2, y2)
         void drawLine(Position a, Position b);
@@ -496,21 +496,27 @@ namespace sdlpp {
 
     //! for CRTP (static polymorphism)
     //! Canvas depend on Derived::setPixel(), Derived::getPixel() and
-    //! Dervived::getFormat()
+    //! Dervived::getFormat(), Derived::width(), Derived::height()
     template<typename Derived>
     class Canvas {
         static_assert(Drawable<Derived>::value, "Derived is invalid");
         friend PixelCell<Derived>;
         PixelValue drawColor;
+    public:
         PixelValue getPixel(int x, int y); //!< inelined to Dervied::getPixel()
         void setPixel(int x, int y, PixelValue v); //!< inlined to Derived::setPixel()
-    public:
         Canvas() : drawColor(0) {}
+        int getHeight();
+        int getWidth();
+        void clear();
         void drawPoint(Position pos);
         void drawLine(Position a, Position b);
         void drawEllipse(Position center, Position radius);
+        void fillEllipse(Position center, Position radius);
         void drawEllipse(Rectangle rect); //!< ellipse inside a rectangle
+        void fillEllipse(Rectangle rect); //!< ellipse inside a rectangle
         void drawRectangle(Rectangle rect);
+        void fillRectangle(Rectangle rect);
         void drawCircle(Position center, int radius);
         void fillCircle(Position center, int radius);
         PixelCell<Derived> operator[](int x);
@@ -845,7 +851,7 @@ namespace sdlpp {
         }
     }
 
-    inline void Renderer::fillRect(const Rectangle& rect) {
+    inline void Renderer::fillRectangle(const Rectangle& rect) {
         if (SDL_RenderFillRect(ptr, &rect) < 0) {
             THROW_SDLPP_RUNTIME_ERROR();
         }
@@ -1018,6 +1024,16 @@ namespace sdlpp {
     }
 
     template<typename Derived>
+    int Canvas<Derived>::getHeight() {
+        return static_cast<Derived*>(this)->height();
+    }
+
+    template<typename Derived>
+    int Canvas<Derived>::getWidth() {
+        return static_cast<Derived*>(this)->width();
+    }
+
+    template<typename Derived>
     void Canvas<Derived>::setDrawColor(Color c) {
         drawColor = c.mapRGBA(getPixelFormat());
     }
@@ -1128,6 +1144,7 @@ namespace sdlpp {
     }
 
 
+
     template<typename Derived>
     void Canvas<Derived>::drawEllipse(Position center, Position radius) {
         int a = radius.x, b = radius.y;
@@ -1154,6 +1171,28 @@ namespace sdlpp {
     }
 
     template<typename Derived>
+    void Canvas<Derived>::fillEllipse(Position center, Position radius) {
+        int a = radius.x, b = radius.y;
+        int xm = center.x, ym = center.y;
+        int x = -a, y = 0;
+        long e2 = (long)b*b, err = x*(2*e2+x)+e2;
+
+        do {
+            drawLine(Position(xm-x, ym+y), Position(xm+x, ym+y));
+            drawLine(Position(xm-x, ym-y), Position(xm+x, ym-y));
+            e2 = 2*err;
+            if (e2 >= (x*2+1)*(long)b*b)
+                err += (++x*2+1) * (long)b*b;
+            if (e2 <= (y*2+1)*(long)a*a)
+                err += (++y*2+1)*(long)a*a;
+        } while (x <= 0);
+
+        while (y++ < b) {
+            drawLine(Position(xm, ym+y), Position(xm, ym-y));
+        }
+    }
+
+    template<typename Derived>
     void Canvas<Derived>::drawCircle(Position center, int radius) {
         int xm = center.x, ym = center.y, r = radius;
         int x = -r, y = 0, err = 2-2*r;
@@ -1175,7 +1214,7 @@ namespace sdlpp {
         int x0 = rect.x, y0 = rect.y;
         int x1 = x0 + rect.w, y1 = y0 + rect.h;
 
-        long a = abs(x1-x0), b = abs(y1-y0), b1 = b&1;
+        long a = std::abs(x1-x0), b = std::abs(y1-y0), b1 = b&1;
         double dx = 4*(1.0-a)*b*b, dy = 4*(b1+1)*a*a;
         double err = dx+dy+b1*a*a, e2;
 
@@ -1204,6 +1243,37 @@ namespace sdlpp {
         }
     }
 
+
+    template<typename Derived>
+    void Canvas<Derived>::fillEllipse(Rectangle rect) {
+        int x0 = rect.x, y0 = rect.y;
+        int x1 = x0 + rect.w, y1 = y0 + rect.h;
+
+        long a = std::abs(x1-x0), b = std::abs(y1-y0), b1 = b&1;
+        double dx = 4*(1.0-a)*b*b, dy = 4*(b1+1)*a*a;
+        double err = dx+dy+b1*a*a, e2;
+
+        if (x0 > x1) { x0 = x1; x1 += a; }
+        if (y0 > y1) y0 = y1;
+        y0 += (b+1) / 2;
+        y1 = y0 - b1;
+        a = 8*a*a;
+        b1 = 8*b*b;
+
+        do {
+            drawLine(Position(x1, y0), Position(x1, y1));
+            drawLine(Position(x0, y0), Position(x0, y1));
+            e2 = 2*err;
+            if (e2 <= dy) { y0++; y1-- ; err += dy += a; }
+            if (e2 >= dx || 2*err > dy) { x0++; x1-- ; err += dx += b1;}
+        } while (x0 <= x1);
+
+        while (y0-y1 <= b) {
+            drawLine(Position(x0-1, y0), Position(x0-1, y1));
+            drawLine(Position(x1+1, y0++), Position(x1+1, y1--));
+        }
+    }
+
     template<typename Derived>
     void Canvas<Derived>::drawRectangle(Rectangle rect) {
         // a b
@@ -1216,6 +1286,21 @@ namespace sdlpp {
         drawLine(a, c);
         drawLine(c, d);
         drawLine(b, d);
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::fillRectangle(Rectangle rect) {
+        for (int i = rect.x; i < rect.x + rect.w; i++) {
+            for (int j = rect.y; j < rect.y + rect.h; j++) {
+                setPixel(i, j, drawColor);
+            }
+        }
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::clear() {
+        const static Position start(0, 0);
+        fillRectangle(Rectangle(getWidth(), getHeight(), start));
     }
 
     template<typename Derived>

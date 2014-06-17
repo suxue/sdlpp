@@ -47,16 +47,16 @@ int main(int argc, char *argv[])
     renderer.setTarget(&canvas);
 
     renderer.setDrawColor(Color(0xff, 0xff, 0xff));
-    renderer.fillRect(Rectangle(w, h, Position(0, 0)));
+    renderer.fillRectangle(Rectangle(w, h, Position(0, 0)));
 
     renderer.setDrawColor(Color(0xff, 0, 0));
-    renderer.fillRect(Rectangle(w, h, Position(w, 0)));
+    renderer.fillRectangle(Rectangle(w, h, Position(w, 0)));
 
     renderer.setDrawColor(Color(0, 0xff, 0));
-    renderer.fillRect(Rectangle(w, h, Position(0, h)));
+    renderer.fillRectangle(Rectangle(w, h, Position(0, h)));
 
     renderer.setDrawColor(Color(0, 0, 0xff));
-    renderer.fillRect(Rectangle(w, h, Position(w, h)));
+    renderer.fillRectangle(Rectangle(w, h, Position(w, h)));
 
     renderer.setTarget();
 
