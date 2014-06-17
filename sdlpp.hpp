@@ -42,6 +42,7 @@ extern "C" {
 #include <memory>
 #include <type_traits>
 #include <cstdlib>
+#include <stack>
 
 namespace sdlpp {
 
@@ -508,7 +509,7 @@ namespace sdlpp {
         void drawPoint(Position pos);
         void drawLine(Position a, Position b);
         void drawEllipse(Position center, Position radius);
-        void drawEllipse(Rectangle rect); //!< ellipse inside a rectangle 
+        void drawEllipse(Rectangle rect); //!< ellipse inside a rectangle
         void drawRectangle(Rectangle rect);
         void drawCircle(Position center, int radius);
         void fillCircle(Position center, int radius);
@@ -1215,6 +1216,23 @@ namespace sdlpp {
         drawLine(a, c);
         drawLine(c, d);
         drawLine(b, d);
+    }
+
+    template<typename Derived>
+    void Canvas<Derived>::fillCircle(Position center, int radius) {
+        int xm = center.x, ym = center.y, r = radius;
+        int x = -r, y = 0, err = 2-2*r;
+
+        drawLine(Position(xm, ym-r), Position(xm, ym+r));
+        do {
+            drawLine(Position(xm+x, ym+y), Position(xm+x, ym-y));
+            drawLine(Position(xm-x, ym+y), Position(xm-x, ym-y));
+
+            r = err;
+            if (r <= y) err += ++y*2 + 1;
+            if (r > x || err > y)
+                err += ++x * 2+1;
+        } while (x < 0);
     }
 }
 

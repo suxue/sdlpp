@@ -79,6 +79,10 @@ int main(int argc, char *argv[])
     network.drawEllipse(bound);
     network.drawRectangle(bound);
 
+
+    network.setDrawColor(Color::Purple);
+    network.fillCircle(Position(200, 150), 75);
+
     dest.blitScaled(canvas);
     dest.blit(network);
     window.update();
