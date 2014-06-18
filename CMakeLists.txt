@@ -44,4 +44,6 @@ add_executable(sdlpp_test test.cpp)
 target_link_libraries(sdlpp_test ${Boost_TEST_EXEC_MONITOR_LIBRARY})
 target_link_libraries(sdlpp_test sdlpp)
 
-add_subdirectory(demos)
+if (BUILD_DEMOS)
+    add_subdirectory(demos)
+endif()
