@@ -97,7 +97,7 @@ int main (int argc, char *argv[])
 
     // (center{x, y}, radius(x, y))
     lua["fillEllipse"] = [&canvas](State& st) -> int {
-        if (st.top() != 2 || !st[-2].istab() || !st[-2].istab())
+        if (st.top() != 2 || !st[-2].istab() || !st[-1].istab())
             st.error("fillEllipse(center, radius)");
         Table c = st[-2];
         Table r = st[-1];
@@ -105,6 +105,29 @@ int main (int argc, char *argv[])
         Position radius((Number)r[1], (Number)r[2]);
         st.pop(2);
         canvas.fillEllipse(center, radius);
+        return 0;
+    };
+
+    // (center{x, y}, radius)
+    lua["drawCircle"] = [&canvas](State& st) -> int {
+        if (st.top() != 2 || !st[-2].istab() || !st[-1].isnum())
+            st.error("fillCircle(center, radius)");
+        Table c = st[-2];
+        Position center((Number)c[1], (Number)c[2]);
+        Number radius = st[-1].num();
+        st.pop(2);
+        canvas.drawCircle(center, radius);
+        return 0;
+    };
+
+    lua["fillCircle"] = [&canvas](State& st) -> int {
+        if (st.top() != 2 || !st[-2].istab() || !st[-1].isnum())
+            st.error("fillCircle(center, radius)");
+        Table c = st[-2];
+        Position center((Number)c[1], (Number)c[2]);
+        Number radius = st[-1].num();
+        st.pop(2);
+        canvas.fillCircle(center, radius);
         return 0;
     };
 
