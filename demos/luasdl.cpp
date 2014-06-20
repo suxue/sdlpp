@@ -51,17 +51,19 @@ int main (int argc, char *argv[])
     lua.openlibs();
     lua["color"] = [&canvas](State& st) -> int {
         // accept 3 value, rgb, return the Color object
-        Number r = st[-3];
-        Number g = st[-2];
-        Number b = st[-1];
+        auto r = st[-3], g = st[-2], b = st[-1];
+        if (!r.isnum() || !g.isnum() || !b.isnum())
+            st.error("color(r, g, b)");
+        Color c(r.num(), g.num(), b.num());
         st.pop(3);
-        Color c(r, g, b);
         st.pushUserData(c);
         return 1;
     };
 
     lua["set"] = [&canvas](State& st) -> int {
         // accept 3 value, rgb, return the Color object
+        if (st.top() != 1)
+            st.error("line(point, point)");
         UserData ud = st[-1];
         auto c = ud.get<Color>();
         canvas.setDrawColor(*c);
@@ -70,6 +72,8 @@ int main (int argc, char *argv[])
     };
 
     lua["line"] = [&canvas](State& st) -> int {
+        if (st.top() != 2 || !st[-1].istab() || !st[-2].istab())
+            st.error("line(point, point)");
         Table s = st[-2];
         Table e = st[-1];
         Number x1 = s[1], y1 = s[2];
@@ -80,19 +84,41 @@ int main (int argc, char *argv[])
     };
 
     lua["fillRect"] = [&canvas](State& st) -> int {
-        Table s = st[-2];
-        Table e = st[-1];
-        Number x1 = s[1], y1 = s[2];
-        Number x2 = e[1], y2 = e[2];
+        if (st.top() != 2 || !st[-1].istab() || !st[-2].istab())
+            st.error("fillRect(center, geometry(w,g))");
+        Table c = st[-2];
+        Table g = st[-1];
+        Number w = g[1], h = g[2];
+        Number x = c[1], y = c[2];
         st.pop(2);
-        canvas.fillRectangle(Rectangle(x2, y2, Position(x1, y1)));
+        canvas.fillRectangle(Rectangle(w, h, Position(x, y)));
         return 0;
     };
 
-    lua.loadstring("set(color(255, 0, 255)); line({1, 1}, {100, 100})");
+    // (center{x, y}, radius(x, y))
+    lua["fillEllipse"] = [&canvas](State& st) -> int {
+        if (st.top() != 2 || !st[-2].istab() || !st[-2].istab())
+            st.error("fillEllipse(center, radius)");
+        Table c = st[-2];
+        Table r = st[-1];
+        Position center((Number)c[1], (Number)c[2]);
+        Position radius((Number)r[1], (Number)r[2]);
+        st.pop(2);
+        canvas.fillEllipse(center, radius);
+        return 0;
+    };
+
+    if (argc == 2) {
+        auto filename = argv[1];
+        lua.loadfile(filename);
+    } else {
+        auto path  = string(SDLPP_DEMO_DATA_DIR) + "luasdl.lua";
+        lua.loadfile(path);
+    }
+
     if (lua.pcall(0, 0) != LUA_OK) {
         const char *msg = lua[1];
-        fprintf(stderr, "%s\n", msg);
+        fprintf(stderr, "error: %s\n", msg);
         return 1;
     }
 

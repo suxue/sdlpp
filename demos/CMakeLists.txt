@@ -40,5 +40,5 @@ target_link_libraries(color_mod sdlpp demos_common)
 add_executable(canvas canvas.cpp)
 target_link_libraries(canvas sdlpp demos_common)
 
-add_executable(luascript luascript.cpp)
-target_link_libraries(luascript luamm sdlpp demos_common)
+add_executable(luasdl luasdl.cpp)
+target_link_libraries(luasdl luamm sdlpp demos_common)
