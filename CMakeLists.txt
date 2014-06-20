@@ -20,23 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-cmake_minimum_required(VERSION 2.6)
-project(sdlpp)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 add_library(sdlpp sdlpp.cpp)
-link_libraries(sdlpp ${SDL2_LIBRARY})
-link_libraries(sdlpp SDL2_image)
+target_link_libraries(sdlpp ${SDL2_LIBRARY})
+target_link_libraries(sdlpp SDL2_image)
 if(MSVC)
-    link_libraries(${SDL2_LIBRARY} winmm)
-    link_libraries($(SDL2_LIBRARY) user32)
-    link_libraries($(SDL2_LIBRARY) gdi32)
-    link_libraries($(SDL2_LIBRARY) ole32)
-    link_libraries($(SDL2_LIBRARY) shell32)
-    link_libraries($(SDL2_LIBRARY) imm32)
-    link_libraries($(SDL2_LIBRARY) version)
-    link_libraries($(SDL2_LIBRARY) oleaut32)
+    target_link_libraries(sdlpp winmm)
+    target_link_libraries(sdlpp user32)
+    target_link_libraries(sdlpp gdi32)
+    target_link_libraries(sdlpp ole32)
+    target_link_libraries(sdlpp shell32)
+    target_link_libraries(sdlpp imm32)
+    target_link_libraries(sdlpp version)
+    target_link_libraries(sdlpp oleaut32)
     #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  /SUBSYSTEM:windows")
 endif()
 
