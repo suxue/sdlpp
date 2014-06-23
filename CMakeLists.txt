@@ -42,3 +42,6 @@ target_link_libraries(sdlpp_test sdlpp)
 if (BUILD_DEMOS)
     add_subdirectory(demos)
 endif()
+
+
+add_test (NAME sdlpp_test COMMAND sdlpp_test -o=report)
