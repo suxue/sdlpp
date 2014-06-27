@@ -20,7 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+# macros in config.h
+set(SDLPP_DEMO_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data/)
+
+# config.h
+CONFIGURE_FILE(config.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 add_library(demos_common common.cpp)
+target_include_directories(demos_common PRIVATE
+    $<TARGET_PROPERTY:sdlpp,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(demos_common PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(hello hello.cpp)
 target_link_libraries(hello sdlpp demos_common)
@@ -42,3 +53,5 @@ target_link_libraries(canvas sdlpp demos_common)
 
 add_executable(luasdl luasdl.cpp)
 target_link_libraries(luasdl luamm sdlpp demos_common)
+target_include_directories(luasdl PRIVATE
+    $<TARGET_PROPERTY:luamm,INTERFACE_INCLUDE_DIRECTORIES>)

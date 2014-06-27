@@ -20,20 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+cmake_minimum_required(VERSION 3.0)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
+
+find_package(C11)
+Find_package(MyBoost)
+
+find_package(SDL2)
+include_directories( ${SDL2_INCLUDE_DIR} )
+MESSAGE(STATUS "SDL2_FOUND = ${SDL2_FOUND}")
+MESSAGE(STATUS "SDL_INCLUDE_DIR = ${SDL2_INCLUDE_DIR}")
+MESSAGE(STATUS "SDL_LIBRARY = ${SDL2_LIBRARY}")
+
 add_library(sdlpp sdlpp.cpp)
 target_link_libraries(sdlpp ${SDL2_LIBRARY})
 target_link_libraries(sdlpp SDL2_image)
-if(MSVC)
-    target_link_libraries(sdlpp winmm)
-    target_link_libraries(sdlpp user32)
-    target_link_libraries(sdlpp gdi32)
-    target_link_libraries(sdlpp ole32)
-    target_link_libraries(sdlpp shell32)
-    target_link_libraries(sdlpp imm32)
-    target_link_libraries(sdlpp version)
-    target_link_libraries(sdlpp oleaut32)
-    #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  /SUBSYSTEM:windows")
-endif()
+
+target_include_directories(sdlpp INTERFACE ./)
+target_include_directories(sdlpp PRIVATE ${SDL2_INCLUDE_DIR})
 
 add_executable(sdlpp_test test.cpp)
 target_link_libraries(sdlpp_test ${Boost_TEST_EXEC_MONITOR_LIBRARY})
@@ -43,5 +48,5 @@ if (BUILD_DEMOS)
     add_subdirectory(demos)
 endif()
 
-
+enable_testing ()
 add_test (NAME sdlpp_test COMMAND sdlpp_test -o=report)
