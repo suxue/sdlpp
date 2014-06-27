@@ -51,7 +51,9 @@ target_link_libraries(color_mod sdlpp demos_common)
 add_executable(canvas canvas.cpp)
 target_link_libraries(canvas sdlpp demos_common)
 
+if(LUA51_FOUND)
 add_executable(luasdl luasdl.cpp)
 target_link_libraries(luasdl luamm sdlpp demos_common)
 target_include_directories(luasdl PRIVATE
     $<TARGET_PROPERTY:luamm,INTERFACE_INCLUDE_DIRECTORIES>)
+endif()
