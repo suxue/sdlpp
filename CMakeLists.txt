@@ -49,4 +49,7 @@ if (BUILD_DEMOS)
 endif()
 
 enable_testing ()
-add_test (NAME sdlpp_test COMMAND sdlpp_test -o=report)
+ADD_TEST(NAME testdep/sdlpp  COMMAND "${CMAKE_COMMAND}" --build
+    ${CMAKE_BINARY_DIR} --target sdlpp_test)
+add_test (NAME test/sdlpp COMMAND sdlpp_test -o=report)
+SET_TESTS_PROPERTIES (test/sdlpp PROPERTIES DEPENDS testdep/sdlpp )
