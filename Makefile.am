@@ -11,3 +11,5 @@ bin_PROGRAMS = sdlpp_test
 sdlpp_test_SOURCES = test.cpp sdlpp.hpp
 sdlpp_test_LDADD = libsdlpp.a -lboost_test_exec_monitor
 
+test: sdlpp_test
+	./sdlpp_test
