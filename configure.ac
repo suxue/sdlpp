@@ -5,6 +5,7 @@ AC_CONFIG_MACRO_DIR(../m4)
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.14 no-define foreign])
+AM_MAINTAINER_MODE([enable])
 AM_SILENT_RULES([yes])
 
 AC_LANG([C++])
