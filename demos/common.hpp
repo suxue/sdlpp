@@ -40,9 +40,4 @@ void idlewait(sdlpp::Renderer* renderer, sdlpp::Window& window,
 
 #define DEMO_PATH(path) (std::string(SDLPP_DEMO_DATA_DIR) + path)
 
-#ifdef __MINGW32__
-#undef main
-#define main WinMain
-#endif
-
 #endif

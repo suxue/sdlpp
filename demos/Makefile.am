@@ -1,6 +1,6 @@
 bin_PROGRAMS = basic_draw canvas color_key color_mod hello sprite luasdl
 
-LIBS = -lSDL2 -lSDL2_image
+LIBS = -Wl,--whole-archive -lSDL2main -Wl,--no-whole-archive -lSDL2 -lSDL2_image 
 AM_CPPFLAGS = -I$(srcdir)/.. -I..
 LDADD = ../libsdlpp.a
 
