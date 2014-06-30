@@ -26,7 +26,7 @@
 #ifndef SDLPP_DEMOS_COMMON_HPP
 #define SDLPP_DEMOS_COMMON_HPP
 
-#include"sdlpp.hpp"
+#include "sdlpp.hpp"
 #include "config.h"
 #include <functional>
 #include <string>
@@ -39,5 +39,10 @@ void idlewait(sdlpp::Renderer* renderer, sdlpp::Window& window,
 
 
 #define DEMO_PATH(path) (std::string(SDLPP_DEMO_DATA_DIR) + path)
+
+#ifdef __MINGW32__
+#undef main
+#define main WinMain
+#endif
 
 #endif

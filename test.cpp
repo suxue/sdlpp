@@ -37,6 +37,3 @@ BOOST_AUTO_TEST_CASE( sdlpp_initializer )
     Initializer i1 = Initializer().video().audio();
     BOOST_CHECK_EQUAL(i1.value, SDL_INIT_AUDIO | SDL_INIT_VIDEO);
 }
-
-int main()
-{}
