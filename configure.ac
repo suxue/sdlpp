@@ -19,15 +19,11 @@ AC_CHECK_HEADERS([SDL2/SDL.h], [],
                      [AC_MSG_ERROR(You need the SDL C headers.)])
 AC_LANG_POP([C])
 
-AC_ARG_ENABLE([demos],
-  AS_HELP_STRING([--disable-demos], [disable building demos]),
-  [build_demos=${enableval}],
-  [build_demos=yes])
+MY_COMMON
 
 abs_srcdir=`(cd $srcdir && pwd)`
 AC_DEFINE_UNQUOTED([SDLPP_DEMO_DATA_DIR], ["$abs_srcdir/demos/data/"])
 AH_TEMPLATE([SDLPP_DEMO_DATA_DIR], [sdlpp demo data dir])
 
-AM_CONDITIONAL([BUILD_DEMOS], [test "$build_demos" = yes])
 AC_CONFIG_FILES([Makefile demos/Makefile])
 AC_OUTPUT
