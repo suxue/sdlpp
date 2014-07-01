@@ -15,4 +15,4 @@ luasdl_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/../../luamm
 luasdl_LDADD = ../libsdlpp.a -llua
 
 ../libsdlpp.a:
-	cd .. && $(MAKE) libsdlpp.a
+	@cd .. && $(MAKE) libsdlpp.a
