@@ -56,7 +56,6 @@ int main (int argc, char *argv[])
 
     lua["set"] = lua.newCallable([&canvas](State& st, UserData&& color)  {
         canvas.setDrawColor(* color.to<Color>());
-        return Nil();
     });
 
     lua["line"] = lua.newCallable([&canvas](State& st,
@@ -64,7 +63,6 @@ int main (int argc, char *argv[])
         canvas.drawLine(
                 Position( Number(from[1]), Number(from[2]) ),
                 Position( Number(to[1]), Number(to[2]) ));
-        return Nil();
     });
 
     lua["fillRect"] = lua.newCallable([&canvas](State& st,
@@ -74,7 +72,6 @@ int main (int argc, char *argv[])
         Number w = geo[1];
         Number h = geo[2];
         canvas.fillRectangle(Rectangle(w, h, Position(x, y)));
-        return Nil();
     });
 
     // (center{x, y}, radius(x, y))
@@ -85,7 +82,6 @@ int main (int argc, char *argv[])
         Number rx = radius[1];
         Number ry = radius[2];
         canvas.fillEllipse(Position(x, y), Position(rx, ry));
-        return Nil();
     });
 
     // (center{x, y}, radius)
@@ -94,7 +90,6 @@ int main (int argc, char *argv[])
         Number x = center[1];
         Number y = center[2];
         canvas.drawCircle(Position(x, y), radius);
-        return Nil();
     });
 
     lua["fillCircle"] = lua.newCallable([&canvas](State& st,
@@ -102,7 +97,6 @@ int main (int argc, char *argv[])
         Number x = center[1];
         Number y = center[2];
         canvas.fillCircle(Position(x, y), radius);
-        return Nil();
     });
 
     string filename;
