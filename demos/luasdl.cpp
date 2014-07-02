@@ -55,7 +55,7 @@ int main (int argc, char *argv[])
     });
 
     lua["set"] = lua.newCallable([&canvas](State& st, UserData&& color)  {
-        canvas.setDrawColor(* color.to<Color>());
+        canvas.setDrawColor(color.to<Color>());
     });
 
     lua["line"] = lua.newCallable([&canvas](State& st,
