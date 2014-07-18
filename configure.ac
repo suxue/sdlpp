@@ -1,6 +1,6 @@
 AC_INIT([sdlpp], [0.1 foreign])
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_MACRO_DIR(../m4)
+AC_CONFIG_MACRO_DIR(autoconf-common/m4/)
 
 AC_CONFIG_HEADERS([config.h])
 

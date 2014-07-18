@@ -11,7 +11,7 @@ color_mod_SOURCES = color_mod.cpp common.cpp common.hpp
 hello_SOURCES = hello.cpp common.cpp common.hpp
 sprite_SOURCES = sprite.cpp common.cpp common.hpp
 luasdl_SOURCES = luasdl.cpp common.cpp common.hpp
-luasdl_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/../../luamm
+luasdl_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/../luamm
 luasdl_LDADD = ../libsdlpp.a -llua
 
 ../libsdlpp.a:
